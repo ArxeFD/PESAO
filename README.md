@@ -1,3 +1,3 @@
 # App PESAO
-
-hacer npm install
+npm install    <- Para instalar todas las dependencias
+npm run dev    <- Para iniciar la app
