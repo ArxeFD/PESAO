@@ -12,6 +12,7 @@ export default function TabLayout() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const bottomInset = Platform.OS === 'web' ? 16 : insets.bottom;
+  const tabBarHeight = 60 + bottomInset;
 
   // If not authenticated, redirect to login
   if (!user) {
@@ -25,21 +26,31 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: theme.colors.textSecondary,
         tabBarStyle: {
-          position: 'absolute',
-          height: 60 + bottomInset,
+          position: 'fixed',
+          height: tabBarHeight,
           paddingBottom: bottomInset,
-          backgroundColor: Platform.OS === 'ios' ? 'transparent' : theme.colors.card,
-          borderTopWidth: 0,
+          backgroundColor: Platform.OS === 'ios' ? 'transparent' : theme.colors.background,
+          borderTopWidth: 1,
+          borderTopColor: theme.colors.border,
           elevation: 0,
+          shadowOpacity: 0,
         },
         tabBarBackground: () => (
           Platform.OS === 'ios' ? 
           <BlurView 
-            intensity={80} 
+            intensity={100} 
             tint="dark" 
             style={StyleSheet.absoluteFill} 
           /> : null
         ),
+        contentStyle: {
+          paddingBottom: tabBarHeight + 32,
+        },
+        tabBarLabelStyle: {
+          fontFamily: 'Inter-Medium',
+          fontSize: 12,
+          marginTop: -4,
+        },
       }}
     >
       <Tabs.Screen

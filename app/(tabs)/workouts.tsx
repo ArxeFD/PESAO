@@ -123,6 +123,7 @@ export default function WorkoutsScreen() {
             )}
             contentContainerStyle={styles.workoutsList}
             showsVerticalScrollIndicator={false}
+            ListFooterComponent={<View style={{ height: 100 }} />}
           />
         ) : (
           <EmptyState
@@ -235,6 +236,6 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   workoutsList: {
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
 });
