@@ -16,7 +16,7 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={styles.logo}>HEVY</Text>
+          <Text style={styles.logo}>PESAO</Text>
           <TouchableOpacity style={styles.filterButton}>
             <Filter color={theme.colors.textPrimary} size={20} />
           </TouchableOpacity>
