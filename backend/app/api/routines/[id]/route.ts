@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
-import Routine from '@/models/Routine';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
@@ -15,20 +14,12 @@ const exerciseSchema = z.object({
   notes: z.string().optional(),
 });
 
-const routineUpdateSchema = z.object({
-  name: z.string().optional(),
+const routineSchema = z.object({
+  name: z.string(),
   description: z.string().optional(),
-  exercises: z.array(exerciseSchema).optional(),
-  frequency: z.array(z.enum([
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday'
-  ])).optional(),
-  isActive: z.boolean().optional(),
+  exercises: z.array(exerciseSchema),
+  frequency: z.number().min(1),
+  active: z.boolean().optional(),
 });
 
 async function getUserIdFromToken(authHeader: string | null) {
@@ -46,19 +37,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
-    const routine = await Routine.findOne({
-      _id: params.id,
-      userId,
-    });
-
+    const routine = await db.findRoutineById(params.id);
     if (!routine) {
       return NextResponse.json(
         { error: 'Routine not found' },
         { status: 404 }
+      );
+    }
+
+    if (routine.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
       );
     }
 
@@ -77,12 +71,27 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
+    const routine = await db.findRoutineById(params.id);
+    if (!routine) {
+      return NextResponse.json(
+        { error: 'Routine not found' },
+        { status: 404 }
+      );
+    }
+
+    if (routine.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const validation = routineUpdateSchema.safeParse(body);
+    const validation = routineSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
@@ -91,20 +100,15 @@ export async function PUT(
       );
     }
 
-    const routine = await Routine.findOneAndUpdate(
-      { _id: params.id, userId },
-      validation.data,
-      { new: true }
-    );
+    const routineData = {
+      ...validation.data,
+      userId,
+      active: validation.data.active ?? routine.active,
+    };
 
-    if (!routine) {
-      return NextResponse.json(
-        { error: 'Routine not found' },
-        { status: 404 }
-      );
-    }
+    const updatedRoutine = await db.updateRoutine(params.id, routineData);
 
-    return NextResponse.json(routine);
+    return NextResponse.json(updatedRoutine);
   } catch (error: any) {
     console.error('Update routine error:', error);
     return NextResponse.json(
@@ -119,15 +123,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
-    const routine = await Routine.findOneAndDelete({
-      _id: params.id,
-      userId,
-    });
-
+    const routine = await db.findRoutineById(params.id);
     if (!routine) {
       return NextResponse.json(
         { error: 'Routine not found' },
@@ -135,9 +135,16 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json(
-      { message: 'Routine deleted successfully' }
-    );
+    if (routine.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    await db.deleteRoutine(params.id);
+
+    return NextResponse.json({ message: 'Routine deleted successfully' });
   } catch (error: any) {
     console.error('Delete routine error:', error);
     return NextResponse.json(

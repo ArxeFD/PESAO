@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
-import Routine from '@/models/Routine';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
@@ -19,15 +18,8 @@ const routineSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   exercises: z.array(exerciseSchema),
-  frequency: z.array(z.enum([
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday'
-  ])),
+  frequency: z.number().min(1),
+  active: z.boolean().optional(),
 });
 
 async function getUserIdFromToken(authHeader: string | null) {
@@ -42,27 +34,22 @@ async function getUserIdFromToken(authHeader: string | null) {
 
 export async function GET(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const isActive = searchParams.get('isActive');
+    const active = searchParams.get('active');
 
-    const query: any = { userId };
-    if (isActive !== null) {
-      query.isActive = isActive === 'true';
-    }
+    const options = {
+      page,
+      limit,
+      active: active ? active === 'true' : undefined,
+    };
 
-    const skip = (page - 1) * limit;
-    const routines = await Routine.find(query)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Routine.countDocuments(query);
+    const { routines, total } = await db.findRoutinesByUserId(userId, options);
 
     return NextResponse.json({
       routines,
@@ -83,7 +70,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
@@ -100,10 +87,10 @@ export async function POST(request: Request) {
     const routineData = {
       ...validation.data,
       userId,
-      isActive: true,
+      active: validation.data.active ?? true,
     };
 
-    const routine = await Routine.create(routineData);
+    const routine = await db.createRoutine(routineData);
 
     return NextResponse.json(routine, { status: 201 });
   } catch (error: any) {

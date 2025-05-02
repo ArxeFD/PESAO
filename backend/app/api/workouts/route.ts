@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
-import Workout from '@/models/Workout';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
@@ -35,7 +34,7 @@ async function getUserIdFromToken(authHeader: string | null) {
 
 export async function GET(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
@@ -45,21 +44,14 @@ export async function GET(request: Request) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    const query: any = { userId };
-    if (startDate && endDate) {
-      query.date = {
-        $gte: new Date(startDate),
-        $lte: new Date(endDate),
-      };
-    }
+    const options = {
+      page,
+      limit,
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    };
 
-    const skip = (page - 1) * limit;
-    const workouts = await Workout.find(query)
-      .sort({ date: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    const total = await Workout.countDocuments(query);
+    const { workouts, total } = await db.findWorkoutsByUserId(userId, options);
 
     return NextResponse.json({
       workouts,
@@ -80,7 +72,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
@@ -100,7 +92,7 @@ export async function POST(request: Request) {
       date: validation.data.date ? new Date(validation.data.date) : new Date(),
     };
 
-    const workout = await Workout.create(workoutData);
+    const workout = await db.createWorkout(workoutData);
 
     return NextResponse.json(workout, { status: 201 });
   } catch (error: any) {

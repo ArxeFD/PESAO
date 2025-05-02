@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
-import Workout from '@/models/Workout';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
@@ -15,11 +14,11 @@ const exerciseSchema = z.object({
   notes: z.string().optional(),
 });
 
-const workoutUpdateSchema = z.object({
-  name: z.string().optional(),
+const workoutSchema = z.object({
+  name: z.string(),
   description: z.string().optional(),
-  exercises: z.array(exerciseSchema).optional(),
-  duration: z.number().min(0).optional(),
+  exercises: z.array(exerciseSchema),
+  duration: z.number().min(0),
   date: z.string().optional(),
 });
 
@@ -38,19 +37,22 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
-    const workout = await Workout.findOne({
-      _id: params.id,
-      userId,
-    });
-
+    const workout = await db.findWorkoutById(params.id);
     if (!workout) {
       return NextResponse.json(
         { error: 'Workout not found' },
         { status: 404 }
+      );
+    }
+
+    if (workout.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
       );
     }
 
@@ -69,12 +71,27 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
+    const workout = await db.findWorkoutById(params.id);
+    if (!workout) {
+      return NextResponse.json(
+        { error: 'Workout not found' },
+        { status: 404 }
+      );
+    }
+
+    if (workout.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const validation = workoutUpdateSchema.safeParse(body);
+    const validation = workoutSchema.safeParse(body);
 
     if (!validation.success) {
       return NextResponse.json(
@@ -83,25 +100,15 @@ export async function PUT(
       );
     }
 
-    const updateData = {
+    const workoutData = {
       ...validation.data,
-      date: validation.data.date ? new Date(validation.data.date) : undefined,
+      userId,
+      date: validation.data.date ? new Date(validation.data.date) : new Date(),
     };
 
-    const workout = await Workout.findOneAndUpdate(
-      { _id: params.id, userId },
-      updateData,
-      { new: true }
-    );
+    const updatedWorkout = await db.updateWorkout(params.id, workoutData);
 
-    if (!workout) {
-      return NextResponse.json(
-        { error: 'Workout not found' },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(workout);
+    return NextResponse.json(updatedWorkout);
   } catch (error: any) {
     console.error('Update workout error:', error);
     return NextResponse.json(
@@ -116,15 +123,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    await connectDB();
+    const db = await connectDB();
     const headersList = headers();
     const userId = await getUserIdFromToken(headersList.get('authorization'));
 
-    const workout = await Workout.findOneAndDelete({
-      _id: params.id,
-      userId,
-    });
-
+    const workout = await db.findWorkoutById(params.id);
     if (!workout) {
       return NextResponse.json(
         { error: 'Workout not found' },
@@ -132,9 +135,16 @@ export async function DELETE(
       );
     }
 
-    return NextResponse.json(
-      { message: 'Workout deleted successfully' }
-    );
+    if (workout.userId !== userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 403 }
+      );
+    }
+
+    await db.deleteWorkout(params.id);
+
+    return NextResponse.json({ message: 'Workout deleted successfully' });
   } catch (error: any) {
     console.error('Delete workout error:', error);
     return NextResponse.json(

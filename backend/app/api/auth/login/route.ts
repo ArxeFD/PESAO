@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import connectDB from '@/lib/db';
-import User from '@/models/User';
 import { z } from 'zod';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
@@ -13,7 +12,7 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     
     const body = await request.json();
     const validation = loginSchema.safeParse(body);
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
     const { email, password } = validation.data;
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await db.findUserByEmail(email);
     if (!user) {
       return NextResponse.json(
         { error: 'Invalid credentials' },

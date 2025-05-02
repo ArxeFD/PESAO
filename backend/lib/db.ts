@@ -1,40 +1,36 @@
 import mongoose from 'mongoose';
+import { MockDB } from './mockData';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/pesao';
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env');
-}
-
-let cached = global.mongoose;
-
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
-}
+let db: any = null;
 
 async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
-  }
-
-  if (!cached.promise) {
-    const opts = {
-      bufferCommands: false,
-    };
-
-    cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
-      return mongoose;
-    });
-  }
+  if (db) return db;
 
   try {
-    cached.conn = await cached.promise;
-  } catch (e) {
-    cached.promise = null;
-    throw e;
+    if (MONGODB_URI === 'mongodb://localhost:27017/pesao') {
+      // Use mock database if MongoDB URI is not configured
+      db = MockDB.getInstance();
+      console.log('Using mock database');
+    } else {
+      // Connect to MongoDB
+      const opts = {
+        bufferCommands: false,
+      };
+
+      const connection = await mongoose.connect(MONGODB_URI, opts);
+      db = connection;
+      console.log('Connected to MongoDB');
+    }
+  } catch (error) {
+    console.error('Error connecting to database:', error);
+    // Fallback to mock database if connection fails
+    db = MockDB.getInstance();
+    console.log('Falling back to mock database');
   }
 
-  return cached.conn;
+  return db;
 }
 
 export default connectDB; 

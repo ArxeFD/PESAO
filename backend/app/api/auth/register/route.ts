@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
-import User from '@/models/User';
 import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -11,7 +11,7 @@ const registerSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    await connectDB();
+    const db = await connectDB();
     
     const body = await request.json();
     const validation = registerSchema.safeParse(body);
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
     const { email, password, name } = validation.data;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await db.findUserByEmail(email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'Email already registered' },
@@ -34,11 +34,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create new user
-    const user = await User.create({
+    const user = await db.createUser({
       email,
-      password,
+      password: hashedPassword,
       name,
+      role: 'user',
+      comparePassword: async (candidatePassword: string) => {
+        return await bcrypt.compare(candidatePassword, hashedPassword);
+      },
     });
 
     // Remove password from response
