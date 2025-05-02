@@ -7,7 +7,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SplashScreen from 'expo-splash-screen';
 import { WorkoutProvider } from '@/providers/WorkoutProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
-import { UserProvider } from '@/providers/UserProvider';
+import { AuthProvider } from '@/providers/AuthProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -33,7 +33,7 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <UserProvider>
+      <AuthProvider>
         <ThemeProvider>
           <WorkoutProvider>
             <Stack screenOptions={{ headerShown: false }}>
@@ -58,7 +58,7 @@ export default function RootLayout() {
             <StatusBar style="light" />
           </WorkoutProvider>
         </ThemeProvider>
-      </UserProvider>
+      </AuthProvider>
     </GestureHandlerRootView>
   );
 }
