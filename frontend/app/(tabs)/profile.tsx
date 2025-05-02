@@ -128,7 +128,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <TouchableOpacity style={styles.upgradeButton}>
             <Crown size={20} color="#FFFFFF" />
-            <Text style={styles.upgradeButtonText}>Upgrade to Hevy Pro</Text>
+            <Text style={styles.upgradeButtonText}>Upgrade to PESAO Pro</Text>
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.logoutButton}>

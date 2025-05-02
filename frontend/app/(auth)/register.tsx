@@ -30,7 +30,7 @@ export default function RegisterScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.logo}>HEVY</Text>
+        <Text style={styles.logo}>PESAO</Text>
         <Text style={styles.subtitle}>Create your account</Text>
       </View>
 
