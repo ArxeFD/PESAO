@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Check, ChevronDown, Clock, X, Search, Plus, Calendar } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { Workout, Exercise } from '@/types';
@@ -13,12 +13,15 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
 
-export default function NewWorkoutScreen() {
+export default function EditWorkoutScreen() {
   const router = useRouter();
-  const { addWorkout } = useWorkouts();
-  const { exercises } = useExercises();
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { getWorkoutById, updateWorkout } = useWorkouts();
+  const { exercises, getExerciseById } = useExercises();
   
-  const [workoutName, setWorkoutName] = useState('Quick Workout');
+  const workout = getWorkoutById(id || '');
+  
+  const [workoutName, setWorkoutName] = useState(workout?.name || '');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercises, setSelectedExercises] = useState<{
@@ -26,20 +29,35 @@ export default function NewWorkoutScreen() {
     sets: { weight: string; reps: string; id: string }[];
   }[]>([]);
   const [showTimer, setShowTimer] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date(workout?.date || Date.now()));
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Reset state when screen comes into focus
-  useFocusEffect(
-    React.useCallback(() => {
-      setWorkoutName('Quick Workout');
-      setSelectedExercises([]);
-      setSelectedDate(new Date());
-      setShowTimer(false);
-      setIsSearchOpen(false);
-      setSearchQuery('');
-    }, [])
-  );
+  useEffect(() => {
+    if (workout) {
+      setWorkoutName(workout.name);
+      setSelectedDate(new Date(workout.date));
+      
+      // Convert workout exercises to the format used in the form
+      const formattedExercises = workout.exercises.map(exercise => {
+        const exerciseData = getExerciseById(exercise.exerciseId);
+        if (!exerciseData) return null;
+        
+        return {
+          exercise: exerciseData,
+          sets: exercise.sets.map(set => ({
+            weight: set.weight.toString(),
+            reps: set.reps.toString(),
+            id: set.id
+          }))
+        };
+      }).filter(Boolean) as {
+        exercise: Exercise;
+        sets: { weight: string; reps: string; id: string }[];
+      }[];
+      
+      setSelectedExercises(formattedExercises);
+    }
+  }, [workout]);
 
   // Filter exercises based on search query
   const filteredExercises = exercises.filter(exercise => 
@@ -91,8 +109,8 @@ export default function NewWorkoutScreen() {
       return;
     }
     
-    const newWorkout: Workout = {
-      id: Date.now().toString(),
+    const updatedWorkout: Workout = {
+      id: id || Date.now().toString(),
       name: workoutName,
       date: selectedDate.toISOString(),
       duration: 60,
@@ -109,9 +127,23 @@ export default function NewWorkoutScreen() {
       })),
     };
     
-    addWorkout(newWorkout);
-    router.push('/');
+    updateWorkout(updatedWorkout);
+    router.back();
   };
+
+  if (!workout) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
+            <X size={24} color={theme.colors.textPrimary} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Workout Not Found</Text>
+          <View style={{ width: 40 }} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -319,6 +351,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  headerTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 18,
+    color: theme.colors.textPrimary,
+  },
   workoutNameInput: {
     fontFamily: 'Inter-Bold',
     fontSize: 18,
@@ -334,6 +371,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  finishButtonDisabled: {
+    opacity: 0.5,
   },
   content: {
     flex: 1,
@@ -515,4 +555,4 @@ const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginLeft: 12,
   },
-});
+}); 

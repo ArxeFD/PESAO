@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ArrowLeft, Clock, MoveVertical as MoreVertical, ChevronDown, Share2, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Clock, MoveVertical as MoreVertical, ChevronDown, Share2, ChevronRight, Edit2, Trash2, ChevronLeft } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useExercises } from '@/hooks/useExercises';
 import { format } from 'date-fns';
 import WorkoutExerciseItem from '@/components/workout/WorkoutExerciseItem';
+import { EllipsisVertical } from 'lucide-react-native';
 
 export default function WorkoutDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { workouts, getWorkoutById } = useWorkouts();
+  const { workouts, getWorkoutById, deleteWorkout } = useWorkouts();
   const { getExerciseById } = useExercises();
   
   const workout = getWorkoutById(id || '');
   
   const [editMode, setEditMode] = useState(false);
   const [workoutName, setWorkoutName] = useState(workout?.name || '');
+  const [showOptions, setShowOptions] = useState(false);
 
   useEffect(() => {
     if (workout) {
@@ -26,12 +28,40 @@ export default function WorkoutDetailScreen() {
     }
   }, [workout]);
 
+  const handleDelete = () => {
+    Alert.alert(
+      'Delete Workout',
+      'Are you sure you want to delete this workout? This action cannot be undone.',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            deleteWorkout(id || '');
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleEdit = () => {
+    router.push({
+      pathname: '/workout/edit',
+      params: { id: id }
+    });
+  };
+
   if (!workout) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <ArrowLeft size={24} color={theme.colors.textPrimary} />
+            <ChevronLeft size={24} color={theme.colors.textPrimary} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Workout Not Found</Text>
           <View style={{ width: 40 }} />
@@ -65,7 +95,7 @@ export default function WorkoutDetailScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <ArrowLeft size={24} color={theme.colors.textPrimary} />
+          <ChevronLeft size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
         {editMode ? (
           <TextInput
@@ -80,10 +110,33 @@ export default function WorkoutDetailScreen() {
             <Text style={styles.headerTitle}>{workout.name}</Text>
           </TouchableOpacity>
         )}
-        <TouchableOpacity style={styles.moreButton}>
-          <MoreVertical size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity 
+          style={styles.moreButton}
+          onPress={() => setShowOptions(!showOptions)}
+        >
+          <EllipsisVertical size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
       </View>
+
+      {showOptions && (
+        <View style={styles.optionsContainer}>
+          <TouchableOpacity 
+            style={styles.optionButton}
+            onPress={handleEdit}
+          >
+            <Edit2 size={20} color={theme.colors.textPrimary} />
+            <Text style={styles.optionText}>Edit Workout</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.optionButton, styles.deleteButton]}
+            onPress={handleDelete}
+          >
+            <Trash2 size={20} color="#FF0000" />
+            <Text style={[styles.optionText, { color: "#FF0000" }]}>Delete Workout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <ScrollView style={styles.content}>
         <View style={styles.dateContainer}>
@@ -139,7 +192,7 @@ export default function WorkoutDetailScreen() {
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.actionButton}>
-            <ChevronDown size={20} color={theme.colors.textSecondary} />
+            <MoreVertical size={20} color={theme.colors.textSecondary} />
             <Text style={styles.actionText}>Export as PDF</Text>
           </TouchableOpacity>
         </View>
@@ -340,5 +393,41 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     color: theme.colors.white,
+  },
+  optionsContainer: {
+    position: 'absolute',
+    top: 60,
+    right: 16,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 8,
+    zIndex: 1000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  optionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  optionText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    marginLeft: 12,
+  },
+  deleteButton: {
+    marginTop: 4,
+  },
+  deleteText: {
+    color: theme.colors.error,
   },
 });

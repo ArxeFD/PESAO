@@ -1,59 +1,99 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Dumbbell, Plus, Filter, TrendingUp, Clock } from 'lucide-react-native';
+import { Dumbbell, Plus, Filter, TrendingUp, Clock, ChevronDown } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import WorkoutCard from '@/components/workout/WorkoutCard';
 import RecentExerciseCard from '@/components/exercises/RecentExerciseCard';
 import { useWorkouts } from '@/hooks/useWorkouts';
 
+type SortOption = 'most_recent' | 'oldest' | 'most_volume' | 'most_sets';
+
 export default function HomeScreen() {
   const router = useRouter();
-  const { recentWorkouts } = useWorkouts();
+  const { recentWorkouts, sortWorkouts } = useWorkouts();
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const [currentSort, setCurrentSort] = useState<SortOption>('most_recent');
+  const [displayedWorkouts, setDisplayedWorkouts] = useState(recentWorkouts);
+
+  const handleSort = (option: SortOption) => {
+    setCurrentSort(option);
+    const sorted = sortWorkouts(option);
+    setDisplayedWorkouts(sorted.slice(0, 3));
+    setShowFilterMenu(false);
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Text style={styles.logo}>PESAO</Text>
-          <TouchableOpacity style={styles.filterButton}>
-            <Filter color={theme.colors.textPrimary} size={20} />
-          </TouchableOpacity>
-        </View>
-        
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.newWorkoutButton}
-            onPress={() => router.push('/workout/new')}
-          >
-            <View style={styles.buttonIcon}>
-              <Dumbbell color="#fff" size={22} />
-            </View>
-            <Text style={styles.buttonText}>New Workout</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.routineButton}
-            onPress={() => router.push('/workout/templates')}
-          >
-            <View style={[styles.buttonIcon, { backgroundColor: theme.colors.secondary }]}>
-              <Plus color="#fff" size={22} />
-            </View>
-            <Text style={styles.buttonText}>Routines</Text>
-          </TouchableOpacity>
+          <View style={styles.filterContainer}>
+            <TouchableOpacity 
+              style={styles.filterButton}
+              onPress={() => setShowFilterMenu(!showFilterMenu)}
+            >
+              <Filter color={theme.colors.textPrimary} size={20} />
+            </TouchableOpacity>
+            
+            {showFilterMenu && (
+              <View style={styles.filterMenu}>
+                <TouchableOpacity 
+                  style={[styles.filterOption, currentSort === 'most_recent' && styles.selectedFilter]}
+                  onPress={() => handleSort('most_recent')}
+                >
+                  <Text style={[styles.filterText, currentSort === 'most_recent' && styles.selectedFilterText]}>
+                    Most Recent
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterOption, currentSort === 'oldest' && styles.selectedFilter]}
+                  onPress={() => handleSort('oldest')}
+                >
+                  <Text style={[styles.filterText, currentSort === 'oldest' && styles.selectedFilterText]}>
+                    Oldest
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterOption, currentSort === 'most_volume' && styles.selectedFilter]}
+                  onPress={() => handleSort('most_volume')}
+                >
+                  <Text style={[styles.filterText, currentSort === 'most_volume' && styles.selectedFilterText]}>
+                    Most Volume
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={[styles.filterOption, currentSort === 'most_sets' && styles.selectedFilter]}
+                  onPress={() => handleSort('most_sets')}
+                >
+                  <Text style={[styles.filterText, currentSort === 'most_sets' && styles.selectedFilterText]}>
+                    Most Sets
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Workouts</Text>
+            <Text style={styles.sectionTitle}>
+              {currentSort === 'most_recent' && 'Recent Workouts'}
+              {currentSort === 'oldest' && 'Oldest Workouts'}
+              {currentSort === 'most_volume' && 'Highest Volume'}
+              {currentSort === 'most_sets' && 'Most Sets'}
+            </Text>
             <TouchableOpacity onPress={() => router.push('/workouts')}>
               <Text style={styles.seeAll}>See All</Text>
             </TouchableOpacity>
           </View>
 
-          {recentWorkouts.length > 0 ? (
-            recentWorkouts.map((workout) => (
+          {displayedWorkouts.length > 0 ? (
+            displayedWorkouts.map((workout) => (
               <WorkoutCard 
                 key={workout.id} 
                 workout={workout} 
@@ -155,6 +195,43 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  filterContainer: {
+    position: 'relative',
+  },
+  filterMenu: {
+    position: 'absolute',
+    top: 50,
+    right: 0,
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 8,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 1000,
+  },
+  filterOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  selectedFilter: {
+    backgroundColor: theme.colors.primary + '20',
+  },
+  filterText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+  },
+  selectedFilterText: {
+    color: theme.colors.primary,
+  },
   quickActions: {
     flexDirection: 'row',
     paddingHorizontal: 20,
@@ -168,6 +245,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginRight: 12,
+    justifyContent: 'center',
+
   },
   routineButton: {
     flex: 1,
@@ -190,6 +269,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-SemiBold',
     fontSize: 15,
     color: theme.colors.textPrimary,
+    textAlign: 'center'
   },
   section: {
     marginBottom: 24,

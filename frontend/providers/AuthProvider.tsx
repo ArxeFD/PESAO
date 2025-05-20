@@ -24,7 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     // This is where you'd typically make an API call to authenticate
-    await fetch('http://10.96.6.56:3000/api/health')
+    await fetch('http://192.168.1.76:3000/api/health')
     .then(response => response.json())
     .then(data => console.log(data.message))
     .catch(error => console.log(error));
