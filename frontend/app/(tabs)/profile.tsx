@@ -9,12 +9,24 @@ import {
 import { useRouter } from 'expo-router';
 import { Platform } from 'react-native';
 import PlateCalculator from '@/components/profile/PlateCalculator';
+import { useAuth } from '@/providers/AuthProvider';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const [darkMode, setDarkMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showPlateCalculator, setShowPlateCalculator] = useState(false);
+  const { signOut } = useAuth();
+  const [error, setError] = useState('');
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      router.replace('/(auth)');
+    } catch (err) {
+      setError('Invalid credentials');
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -131,7 +143,7 @@ export default function ProfileScreen() {
             <Text style={styles.upgradeButtonText}>Upgrade to PESAO Pro</Text>
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <LogOut size={20} color={theme.colors.danger} />
             <Text style={styles.logoutButtonText}>Log Out</Text>
           </TouchableOpacity>
