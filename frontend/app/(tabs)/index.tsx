@@ -114,53 +114,8 @@ export default function HomeScreen() {
           )}
         </View>
 
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recent Exercises</Text>
-            <TouchableOpacity onPress={() => router.push('/exercises')}>
-              <Text style={styles.seeAll}>See All</Text>
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recentExercisesContainer}
-          >
-            <RecentExerciseCard
-              name="Bench Press"
-              category="Chest"
-              lastWeight="100 kg"
-              icon={<TrendingUp size={16} color={theme.colors.success} />}
-              iconLabel="+5 kg"
-              onPress={() => router.push('/exercise/bench-press')}
-            />
-            <RecentExerciseCard
-              name="Squat"
-              category="Legs"
-              lastWeight="140 kg"
-              icon={<Clock size={16} color={theme.colors.warning} />}
-              iconLabel="2 weeks ago"
-              onPress={() => router.push('/exercise/squat')}
-            />
-            <RecentExerciseCard
-              name="Pull Up"
-              category="Back"
-              lastWeight="BW+10 kg"
-              icon={<TrendingUp size={16} color={theme.colors.success} />}
-              iconLabel="+2.5 kg"
-              onPress={() => router.push('/exercise/pull-up')}
-            />
-            <RecentExerciseCard
-              name="Deadlift"
-              category="Back"
-              lastWeight="160 kg"
-              icon={<Clock size={16} color={theme.colors.warning} />}
-              iconLabel="1 week ago"
-              onPress={() => router.push('/exercise/deadlift')}
-            />
-          </ScrollView>
-        </View>
+  
+ 
       </ScrollView>
     </SafeAreaView>
   );

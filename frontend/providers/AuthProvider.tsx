@@ -19,28 +19,39 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_EMAIL = 'admin@example.com';
 const ADMIN_PASSWORD = 'admin123';
 
+// Base URL for API calls
+const API_BASE_URL = __DEV__ 
+  ? 'http://10.97.38.49:3000/api'  // Development
+  : 'https://api.pesao.com/api';   // Production
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
 
   const signIn = async (email: string, password: string) => {
-    // This is where you'd typically make an API call to authenticate
-    await fetch('http://192.168.1.76:3000/api/health')
-    .then(response => response.json())
-    .then(data => console.log(data.message))
-    .catch(error => console.log(error));
-    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-      setUser({
-        id: '1',
-        name: 'Admin',
-        email: ADMIN_EMAIL,
-      });
-    } else {
-      throw new Error('Invalid credentials');
+    try {
+      // Check if backend is accessible
+      const healthResponse = await fetch(`${API_BASE_URL}/health`);
+      const healthData = await healthResponse.json();
+      console.log('Backend connection status:', healthData.message);
+
+      // Use hardcoded credentials
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        setUser({
+          id: '1',
+          name: 'Admin',
+          email: ADMIN_EMAIL,
+        });
+      } else {
+        throw new Error('Invalid credentials');
+      }
+    } catch (error) {
+      console.error('Sign in error:', error);
+      throw new Error('Could not connect to backend or invalid credentials');
     }
   };
 
   const signUp = async (name: string, email: string, password: string) => {
-    // This is where you'd typically make an API call to register
+    // For now, just simulate registration
     setUser({
       id: Date.now().toString(),
       name,
