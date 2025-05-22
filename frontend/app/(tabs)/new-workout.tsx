@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { Check, ChevronDown, Clock, X, Search, Plus, Calendar } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { Workout, Exercise } from '@/types';
@@ -11,10 +11,11 @@ import ExerciseSearchItem from '@/components/exercises/ExerciseSearchItem';
 import RestTimer from '@/components/workout/RestTimer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 
 export default function NewWorkoutScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { addWorkout } = useWorkouts();
   const { exercises } = useExercises();
   
@@ -26,7 +27,12 @@ export default function NewWorkoutScreen() {
     sets: { weight: string; reps: string; id: string }[];
   }[]>([]);
   const [showTimer, setShowTimer] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (params.date) {
+      return parseISO(params.date as string);
+    }
+    return new Date();
+  });
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Reset state when screen comes into focus
@@ -34,11 +40,15 @@ export default function NewWorkoutScreen() {
     React.useCallback(() => {
       setWorkoutName('Quick Workout');
       setSelectedExercises([]);
-      setSelectedDate(new Date());
+      if (params.date) {
+        setSelectedDate(parseISO(params.date as string));
+      } else {
+        setSelectedDate(new Date());
+      }
       setShowTimer(false);
       setIsSearchOpen(false);
       setSearchQuery('');
-    }, [])
+    }, [params.date])
   );
 
   // Filter exercises based on search query
@@ -172,15 +182,15 @@ export default function NewWorkoutScreen() {
         </View>
       ) : (
         <>
-          <TouchableOpacity 
+            <TouchableOpacity
             style={styles.dateSelector}
             onPress={() => setShowDatePicker(true)}
-          >
+            >
             <Calendar size={20} color={theme.colors.textSecondary} />
             <Text style={styles.dateText}>
               {format(selectedDate, 'EEEE, MMMM d, yyyy')}
             </Text>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
           {showDatePicker && (
             <DateTimePicker

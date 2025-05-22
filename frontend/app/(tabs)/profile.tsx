@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { 
   Clock, Settings, ChevronRight, Calculator, Crown, LogOut, 
-  Moon, Volume2, MoveRight, Cog, Weight, Ruler
+  Moon, Volume2, MoveRight, Cog, Weight, Ruler, X
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import { Platform } from 'react-native';
@@ -18,6 +18,19 @@ export default function ProfileScreen() {
   const [showPlateCalculator, setShowPlateCalculator] = useState(false);
   const { signOut } = useAuth();
   const [error, setError] = useState('');
+  
+  // Profile state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: 'Arseniy Filippov',
+    weight: '82.5',
+    height: '182'
+  });
+  const [editData, setEditData] = useState({
+    name: '',
+    weight: '',
+    height: ''
+  });
 
   const handleLogout = async () => {
     try {
@@ -26,6 +39,24 @@ export default function ProfileScreen() {
     } catch (err) {
       setError('Invalid credentials');
     }
+  };
+
+  const handleEditPress = () => {
+    setEditData({
+      name: profileData.name,
+      weight: profileData.weight,
+      height: profileData.height
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveProfile = () => {
+    setProfileData({
+      name: editData.name,
+      weight: editData.weight,
+      height: editData.height
+    });
+    setShowEditModal(false);
   };
 
   return (
@@ -44,10 +75,10 @@ export default function ProfileScreen() {
             style={styles.profilePhoto}
           />
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>Arseniy Filippov</Text>
+            <Text style={styles.profileName}>{profileData.name}</Text>
             <Text style={styles.profileStats}>32 workouts · 146 exercises</Text>
           </View>
-          <TouchableOpacity style={styles.editButton}>
+          <TouchableOpacity style={styles.editButton} onPress={handleEditPress}>
             <Text style={styles.editButtonText}>Edit</Text>
           </TouchableOpacity>
         </View>
@@ -56,13 +87,13 @@ export default function ProfileScreen() {
           <View style={styles.metricItem}>
             <Weight size={18} color={theme.colors.textSecondary} />
             <Text style={styles.metricLabel}>Weight</Text>
-            <Text style={styles.metricValue}>82.5 kg</Text>
+            <Text style={styles.metricValue}>{profileData.weight} kg</Text>
           </View>
           <View style={styles.metricDivider} />
           <View style={styles.metricItem}>
             <Ruler size={18} color={theme.colors.textSecondary} />
             <Text style={styles.metricLabel}>Height</Text>
-            <Text style={styles.metricValue}>182 cm</Text>
+            <Text style={styles.metricValue}>{profileData.height} cm</Text>
           </View>
         </View>
 
@@ -80,68 +111,9 @@ export default function ProfileScreen() {
             <ChevronRight size={20} color={theme.colors.textSecondary} />
           </TouchableOpacity>
           
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemIcon}>
-              <Clock size={20} color={theme.colors.textSecondary} />
-            </View>
-            <Text style={styles.menuItemText}>Rest Timer</Text>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>App Settings</Text>
-
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemIcon}>
-              <Moon size={20} color={theme.colors.textSecondary} />
-            </View>
-            <Text style={styles.menuItemText}>Dark Mode</Text>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : theme.colors.card}
-              ios_backgroundColor={theme.colors.border}
-            />
-          </View>
-          
-          <View style={styles.menuItem}>
-            <View style={styles.menuItemIcon}>
-              <Volume2 size={20} color={theme.colors.textSecondary} />
-            </View>
-            <Text style={styles.menuItemText}>Sound Effects</Text>
-            <Switch
-              value={soundEnabled}
-              onValueChange={setSoundEnabled}
-              trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
-              thumbColor={Platform.OS === 'ios' ? '#FFFFFF' : theme.colors.card}
-              ios_backgroundColor={theme.colors.border}
-            />
-          </View>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemIcon}>
-              <MoveRight size={20} color={theme.colors.textSecondary} />
-            </View>
-            <Text style={styles.menuItemText}>Export Data</Text>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <View style={styles.menuItemIcon}>
-              <Cog size={20} color={theme.colors.textSecondary} />
-            </View>
-            <Text style={styles.menuItemText}>Advanced Settings</Text>
-            <ChevronRight size={20} color={theme.colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.upgradeButton}>
-            <Crown size={20} color="#FFFFFF" />
-            <Text style={styles.upgradeButtonText}>Upgrade to PESAO Pro</Text>
-          </TouchableOpacity>
           
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <LogOut size={20} color={theme.colors.danger} />
@@ -153,6 +125,69 @@ export default function ProfileScreen() {
       {showPlateCalculator && (
         <PlateCalculator onClose={() => setShowPlateCalculator(false)} />
       )}
+
+      <Modal
+        visible={showEditModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowEditModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Profile</Text>
+              <TouchableOpacity onPress={() => setShowEditModal(false)}>
+                <X size={24} color={theme.colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Name</Text>
+              <TextInput
+                style={styles.input}
+                value={editData.name}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, name: text }))}
+                placeholder="Enter your name"
+                placeholderTextColor={theme.colors.textSecondary}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Weight (kg)</Text>
+              <TextInput
+                style={styles.input}
+                value={editData.weight}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, weight: text }))}
+                placeholder="Enter your weight"
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Height (cm)</Text>
+              <TextInput
+                style={styles.input}
+                value={editData.height}
+                onChangeText={(text) => setEditData(prev => ({ ...prev, height: text }))}
+                placeholder="Enter your height"
+                placeholderTextColor={theme.colors.textSecondary}
+                keyboardType="numeric"
+                blurOnSubmit={true}
+                returnKeyType="done"
+                onSubmitEditing={() => Keyboard.dismiss()}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleSaveProfile}>
+              <Text style={styles.saveButtonText}>Save Changes</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -314,5 +349,58 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.danger,
     marginLeft: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 16,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    color: theme.colors.textPrimary,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 8,
+    padding: 12,
+    color: theme.colors.textPrimary,
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+  },
+  saveButton: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 8,
+    padding: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  saveButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: '#FFFFFF',
   },
 });

@@ -21,17 +21,17 @@ export default function WorkoutExerciseItem({ exercise, sets }: WorkoutExerciseI
           <Text style={styles.name}>{exercise.name}</Text>
           <Text style={styles.category}>{exercise.category}</Text>
         </View>
-      </View>
-
+          </View>
+          
       <View style={styles.setsContainer}>
-        {sets.map((set, index) => (
-          <View key={set.id} style={styles.setRow}>
+          {sets.map((set, index) => (
+            <View key={set.id} style={styles.setRow}>
             <Text style={styles.setText}>Set {index + 1}</Text>
             <Text style={styles.setValue}>{set.weight} kg</Text>
             <Text style={styles.setValue}>{set.reps} reps</Text>
           </View>
         ))}
-      </View>
+        </View>
     </View>
   );
 }

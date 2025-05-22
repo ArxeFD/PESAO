@@ -21,7 +21,7 @@ const ADMIN_PASSWORD = 'admin123';
 
 // Base URL for API calls
 const API_BASE_URL = __DEV__ 
-  ? 'http://10.97.38.49:3000/api'  // Development
+  ? 'http://10.96.23.68:3000/api'  // Development
   : 'https://api.pesao.com/api';   // Production
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

@@ -131,7 +131,12 @@ export default function WorkoutsScreen() {
             title="No workouts found"
             description={`You don't have any workouts on ${format(selectedDate, 'MMMM d, yyyy')}`}
             actionLabel="Start a Workout"
-            onAction={() => router.push('/workout/new')}
+            onAction={() => router.push({
+              pathname: '/(tabs)/new-workout',
+              params: { 
+                date: format(selectedDate, 'yyyy-MM-dd')
+              }
+            })}
           />
         )}
       </View>
