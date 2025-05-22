@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Keyboard } from 'react-native';
 import { theme } from '@/constants/theme';
 import { X, Dumbbell as Barbell, Minus, Plus } from 'lucide-react-native';
 
@@ -89,6 +89,9 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
               onChangeText={setTargetWeight}
               keyboardType="numeric"
               selectTextOnFocus
+              blurOnSubmit={true}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
           </View>
           
@@ -100,6 +103,9 @@ export default function PlateCalculator({ onClose }: PlateCalculatorProps) {
               onChangeText={setBarWeight}
               keyboardType="numeric"
               selectTextOnFocus
+              blurOnSubmit={true}
+              returnKeyType="done"
+              onSubmitEditing={() => Keyboard.dismiss()}
             />
           </View>
           
