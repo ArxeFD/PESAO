@@ -1,21 +1,36 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import WorkoutCard from '@/components/workout/WorkoutCard';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay } from 'date-fns';
 import EmptyState from '@/components/ui/EmptyState';
+import { Workout } from '@/types';
 
 export default function WorkoutsScreen() {
   const router = useRouter();
-  const { workouts } = useWorkouts();
-
+  const { workouts, isLoading, refetch } = useWorkouts();
+  const [localWorkouts, setLocalWorkouts] = useState<Workout[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+
+  // Update local state whenever workouts change
+  useEffect(() => {
+    console.log('🔄 Workouts changed, updating local state:', workouts);
+    setLocalWorkouts(workouts);
+  }, [workouts]);
+
+  // Refetch workouts when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused, refetching workouts');
+      refetch();
+    }, [refetch])
+  );
+
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -32,9 +47,11 @@ export default function WorkoutsScreen() {
     setCurrentMonth(nextMonth);
   };
 
-  const filteredWorkouts = workouts.filter(
+  const filteredWorkouts = localWorkouts.filter(
     workout => isSameDay(new Date(workout.date), selectedDate)
   );
+
+  console.log('📅 Filtered workouts for selected date:', selectedDate, filteredWorkouts);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -61,7 +78,7 @@ export default function WorkoutsScreen() {
           showsHorizontalScrollIndicator={false}
           renderItem={({ item }) => {
             const isSelected = isSameDay(item, selectedDate);
-            const hasWorkout = workouts.some(workout => 
+            const hasWorkout = localWorkouts.some(workout => 
               isSameDay(new Date(workout.date), item)
             );
             
@@ -114,12 +131,9 @@ export default function WorkoutsScreen() {
         {filteredWorkouts.length > 0 ? (
           <FlatList
             data={filteredWorkouts}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(item) => item._id}
             renderItem={({ item }) => (
-              <WorkoutCard 
-                workout={item}
-                onPress={() => router.push(`/workout/${item.id}`)}
-              />
+              <WorkoutCard workout={item} />
             )}
             contentContainerStyle={styles.workoutsList}
             showsVerticalScrollIndicator={false}

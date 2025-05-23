@@ -22,7 +22,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Base URL for API calls
 const API_BASE_URL = __DEV__ 
-  ? 'http://10.96.23.68:3000/api'  // Development
+  ? 'http://192.168.1.91:3000/api'  // Development
   : 'https://api.pesao.com/api';   // Production
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

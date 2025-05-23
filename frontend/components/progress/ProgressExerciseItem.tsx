@@ -4,6 +4,7 @@ import { theme } from '@/constants/theme';
 import { ChevronRight } from 'lucide-react-native';
 
 type ProgressExerciseItemProps = {
+  _id: string;
   name: string;
   category: string;
   isSelected: boolean;
@@ -11,6 +12,7 @@ type ProgressExerciseItemProps = {
 };
 
 export default function ProgressExerciseItem({
+  _id,
   name,
   category,
   isSelected,

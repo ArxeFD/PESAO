@@ -4,13 +4,17 @@ import { theme } from '@/constants/theme';
 import { Workout } from '@/types';
 import { format } from 'date-fns';
 import { Dumbbell, Clock } from 'lucide-react-native';
+import { useExercises } from '@/hooks/useExercises';
+import { useRouter } from 'expo-router';
 
-type WorkoutCardProps = {
+interface WorkoutCardProps {
   workout: Workout;
-  onPress: () => void;
-};
+}
 
-export default function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
+export default function WorkoutCard({ workout }: WorkoutCardProps) {
+  const router = useRouter();
+  const { getExerciseById, isLoading: isLoadingExercises } = useExercises();
+
   // Calculate the total volume of the workout
   const totalVolume = workout.exercises.reduce((acc, exercise) => {
     return acc + exercise.sets.reduce((setAcc, set) => {
@@ -23,13 +27,32 @@ export default function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
     return acc + exercise.sets.length;
   }, 0);
 
+  const handlePress = () => {
+    router.push({
+      pathname: '/workout/[id]',
+      params: { id: workout._id }
+    });
+  };
+
+  // Get exercise names for display
+  const exerciseNames = workout.exercises.map(exercise => {
+    const exerciseData = getExerciseById(exercise.exerciseId._id);
+    return exerciseData?.name || 'Unknown Exercise';
+  });
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress}>
+    <TouchableOpacity 
+      style={styles.container}
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <View style={styles.header}>
-        <Text style={styles.name}>{workout.name}</Text>
-        <Text style={styles.date}>{format(new Date(workout.date), 'MMM d, yyyy')}</Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{workout.name}</Text>
+          <Text style={styles.date}>{format(new Date(workout.date), 'MMM d, yyyy')}</Text>
+        </View>
       </View>
-      
+
       <View style={styles.divider} />
       
       <View style={styles.stats}>
@@ -47,16 +70,12 @@ export default function WorkoutCard({ workout, onPress }: WorkoutCardProps) {
       </View>
       
       <View style={styles.exercisesContainer}>
-        {workout.exercises.slice(0, 3).map((exercise, index) => (
-          <View key={`${exercise.exerciseId}-${index}`} style={styles.exerciseRow}>
+        {!isLoadingExercises && exerciseNames.slice(0, 3).map((name, index) => (
+          <View key={`${workout.exercises[index].exerciseId._id}-${index}`} style={styles.exerciseRow}>
             <View style={styles.exerciseDot} />
-            <Text style={styles.exerciseName}>
-              {/* We would usually get the exercise name from the database */}
-              {['Bench Press', 'Pull Up', 'Shoulder Press', 'Squat', 'Tricep Pushdown', 
-                'Lat Pulldown', 'Bicep Curl', 'Romanian Deadlift', 'Leg Press', 'Incline Bench Press'][parseInt(exercise.exerciseId) - 1]}
-            </Text>
+            <Text style={styles.exerciseName}>{name}</Text>
             <Text style={styles.exerciseSets}>
-              {exercise.sets.length} {exercise.sets.length === 1 ? 'set' : 'sets'}
+              {workout.exercises[index].sets.length} {workout.exercises[index].sets.length === 1 ? 'set' : 'sets'}
             </Text>
           </View>
         ))}
@@ -86,13 +105,17 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     padding: 16,
   },
-  name: {
+  titleContainer: {
+    flex: 1,
+  },
+  title: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     color: theme.colors.textPrimary,
+    marginBottom: 4,
   },
   date: {
     fontFamily: 'Inter-Regular',

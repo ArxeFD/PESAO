@@ -12,19 +12,21 @@ import RestTimer from '@/components/workout/RestTimer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parseISO } from 'date-fns';
+import { useAuth } from '@/providers/AuthProvider';
 
 export default function NewWorkoutScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const { addWorkout } = useWorkouts();
+  const { createWorkout } = useWorkouts();
   const { exercises } = useExercises();
+  const { user } = useAuth();
   
   const [workoutName, setWorkoutName] = useState('Quick Workout');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedExercises, setSelectedExercises] = useState<{
     exercise: Exercise;
-    sets: { weight: string; reps: string; id: string }[];
+    sets: { weight: string; reps: string; _id: string }[];
   }[]>([]);
   const [showTimer, setShowTimer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
@@ -61,7 +63,7 @@ export default function NewWorkoutScreen() {
       ...prev, 
       { 
         exercise, 
-        sets: [{ weight: '', reps: '', id: Date.now().toString() }] 
+        sets: [{ weight: '', reps: '', _id: Date.now().toString() }] 
       }
     ]);
     setIsSearchOpen(false);
@@ -73,7 +75,7 @@ export default function NewWorkoutScreen() {
     newSelectedExercises[exerciseIndex].sets.push({
       weight: newSelectedExercises[exerciseIndex].sets[newSelectedExercises[exerciseIndex].sets.length - 1].weight,
       reps: newSelectedExercises[exerciseIndex].sets[newSelectedExercises[exerciseIndex].sets.length - 1].reps,
-      id: Date.now().toString()
+      _id: Date.now().toString()
     });
     setSelectedExercises(newSelectedExercises);
   };
@@ -97,20 +99,20 @@ export default function NewWorkoutScreen() {
   };
 
   const handleFinishWorkout = () => {
-    if (selectedExercises.length === 0) {
+    if (selectedExercises.length === 0 || !user) {
       return;
     }
     
-    const newWorkout: Workout = {
-      id: Date.now().toString(),
+    const newWorkout: Omit<Workout, '_id' | 'createdAt' | 'updatedAt'> = {
       name: workoutName,
       date: selectedDate.toISOString(),
       duration: 60,
       notes: '',
+      userId: user.id,
       exercises: selectedExercises.map(item => ({
-        exerciseId: item.exercise.id,
+        exerciseId: item.exercise._id,
         sets: item.sets.map(set => ({
-          id: set.id,
+          _id: set._id,
           weight: parseFloat(set.weight) || 0,
           reps: parseInt(set.reps) || 0,
           completed: true,
@@ -119,7 +121,7 @@ export default function NewWorkoutScreen() {
       })),
     };
     
-    addWorkout(newWorkout);
+    createWorkout(newWorkout);
     router.push('/');
   };
 
@@ -173,7 +175,7 @@ export default function NewWorkoutScreen() {
           <ScrollView style={styles.searchResults}>
             {filteredExercises.map(exercise => (
               <ExerciseSearchItem
-                key={exercise.id}
+                key={exercise._id}
                 exercise={exercise}
                 onPress={() => addExerciseToWorkout(exercise)}
               />
@@ -182,34 +184,10 @@ export default function NewWorkoutScreen() {
         </View>
       ) : (
         <>
-            <TouchableOpacity
-            style={styles.dateSelector}
-            onPress={() => setShowDatePicker(true)}
-            >
-            <Calendar size={20} color={theme.colors.textSecondary} />
-            <Text style={styles.dateText}>
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </Text>
-            </TouchableOpacity>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, date) => {
-                setShowDatePicker(false);
-                if (date) {
-                  setSelectedDate(date);
-                }
-              }}
-            />
-          )}
-
           <ScrollView style={styles.content}>
             {selectedExercises.map((item, exerciseIndex) => (
               <Animated.View 
-                key={`${item.exercise.id}-${exerciseIndex}`}
+                key={`${item.exercise._id}-${exerciseIndex}`}
                 style={styles.exerciseCard}
                 entering={FadeInDown.delay(exerciseIndex * 100).duration(300)}
               >
@@ -234,35 +212,30 @@ export default function NewWorkoutScreen() {
                 </View>
 
                 {item.sets.map((set, setIndex) => (
-                  <View key={set.id} style={styles.setRow}>
-                    <Text style={styles.setText}>{setIndex + 1}</Text>
+                  <View key={set._id} style={styles.setRow}>
+                    <Text style={styles.setText}>Set {setIndex + 1}</Text>
                     <TextInput
                       style={styles.setInput}
                       value={set.weight}
                       onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'weight', value)}
-                      keyboardType="numeric"
                       placeholder="0"
                       placeholderTextColor={theme.colors.textSecondary}
+                      keyboardType="numeric"
                     />
                     <TextInput
                       style={styles.setInput}
                       value={set.reps}
                       onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'reps', value)}
-                      keyboardType="numeric"
                       placeholder="0"
                       placeholderTextColor={theme.colors.textSecondary}
+                      keyboardType="numeric"
                     />
-                    {item.sets.length > 1 && (
-                      <TouchableOpacity
-                        onPress={() => removeSet(exerciseIndex, setIndex)}
-                        style={styles.removeSetButton}
-                      >
-                        <X size={14} color={theme.colors.textSecondary} />
-                      </TouchableOpacity>
-                    )}
-                    {item.sets.length === 1 || setIndex !== item.sets.length - 1 ? (
-                      <View style={styles.emptyAction} />
-                    ) : null}
+                    <TouchableOpacity
+                      style={styles.removeSetButton}
+                      onPress={() => removeSet(exerciseIndex, setIndex)}
+                    >
+                      <X size={16} color={theme.colors.textSecondary} />
+                    </TouchableOpacity>
                   </View>
                 ))}
 
@@ -345,6 +318,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  finishButtonDisabled: {
+    opacity: 0.5,
+  },
   content: {
     flex: 1,
     padding: 16,
@@ -389,8 +365,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 12,
     color: theme.colors.textSecondary,
-    width: 50,
-    textAlign: 'center',
+    width: 60,
+    marginLeft: 16,
   },
   setRow: {
     flexDirection: 'row',
@@ -401,69 +377,63 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter-Medium',
     fontSize: 14,
     color: theme.colors.textSecondary,
-    width: 50,
-    textAlign: 'center',
+    width: 60,
   },
   setInput: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: theme.colors.textPrimary,
     backgroundColor: theme.colors.background,
     borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
-    width: 50,
+    padding: 8,
+    width: 60,
+    marginLeft: 16,
     textAlign: 'center',
-    fontFamily: 'Inter-Medium',
-    fontSize: 15,
-    color: theme.colors.textPrimary,
   },
   removeSetButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: theme.colors.background,
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 8,
   },
-  emptyAction: {
-    width: 24,
-    marginLeft: 8,
-  },
   setActions: {
     flexDirection: 'row',
-    marginTop: 8,
+    justifyContent: 'space-between',
+    marginTop: 16,
   },
   addSetButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    backgroundColor: theme.colors.background,
     paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    marginRight: 12,
   },
   restTimerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    backgroundColor: theme.colors.background,
     paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
   },
   addSetText: {
     fontFamily: 'Inter-Medium',
-    fontSize: 13,
+    fontSize: 14,
     color: theme.colors.primary,
-    marginLeft: 6,
+    marginLeft: 4,
   },
   addExerciseButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
     padding: 16,
-    marginBottom: 32,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   addExerciseText: {
     fontFamily: 'Inter-SemiBold',
@@ -485,7 +455,7 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   searchTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 18,
     color: theme.colors.textPrimary,
   },
@@ -493,36 +463,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.card,
-    borderRadius: 12,
     margin: 16,
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 48,
     fontFamily: 'Inter-Regular',
     fontSize: 16,
     color: theme.colors.textPrimary,
+    paddingVertical: 12,
   },
   searchResults: {
     flex: 1,
-  },
-  dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    padding: 16,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  dateText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    marginLeft: 12,
   },
 });

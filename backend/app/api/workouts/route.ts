@@ -1,84 +1,88 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
+import Workout from '@/models/Workout';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-const exerciseSchema = z.object({
-  name: z.string(),
-  sets: z.number().min(1),
-  reps: z.number().min(1),
+const setSchema = z.object({
   weight: z.number().min(0),
-  notes: z.string().optional(),
+  reps: z.number().min(1),
+  completed: z.boolean().default(false)
+});
+
+const workoutExerciseSchema = z.object({
+  exerciseId: z.string(),
+  sets: z.array(setSchema),
+  notes: z.string().optional()
 });
 
 const workoutSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  exercises: z.array(exerciseSchema),
+  name: z.string().min(1),
+  date: z.string().datetime(),
   duration: z.number().min(0),
-  date: z.string().optional(),
+  notes: z.string().optional(),
+  exercises: z.array(workoutExerciseSchema)
 });
 
-async function getUserIdFromToken(authHeader: string | null) {
+// Middleware para verificar el token
+const verifyToken = async (request: Request) => {
+  const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new Error('Invalid authorization header');
+    return null;
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-  return decoded.userId;
-}
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    return decoded.userId;
+  } catch (error) {
+    return null;
+  }
+};
 
+// GET /api/workouts
 export async function GET(request: Request) {
   try {
-    const db = await connectDB();
-    const headersList = headers();
-    const userId = await getUserIdFromToken(headersList.get('authorization'));
+    const userId = await verifyToken(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const startDate = searchParams.get('startDate');
-    const endDate = searchParams.get('endDate');
+    await connectDB();
+    const workouts = await Workout.find({ userId })
+      .populate('exercises.exerciseId')
+      .sort({ date: -1 });
 
-    const options = {
-      page,
-      limit,
-      startDate: startDate ? new Date(startDate) : undefined,
-      endDate: endDate ? new Date(endDate) : undefined,
-    };
-
-    const { workouts, total } = await db.findWorkoutsByUserId(userId, options);
-
-    return NextResponse.json({
-      workouts,
-      pagination: {
-        total,
-        page,
-        pages: Math.ceil(total / limit),
-      },
-    });
+    return NextResponse.json(workouts);
   } catch (error: any) {
-    console.error('Fetch workouts error:', error);
+    console.error('Error fetching workouts:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error fetching workouts' },
       { status: 500 }
     );
   }
 }
 
+// POST /api/workouts
 export async function POST(request: Request) {
   try {
-    const db = await connectDB();
-    const headersList = headers();
-    const userId = await getUserIdFromToken(headersList.get('authorization'));
+    const userId = await verifyToken(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
+    await connectDB();
     const body = await request.json();
+    
     const validation = workoutSchema.safeParse(body);
-
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
@@ -86,19 +90,19 @@ export async function POST(request: Request) {
       );
     }
 
-    const workoutData = {
+    const workout = await Workout.create({
       ...validation.data,
-      userId,
-      date: validation.data.date ? new Date(validation.data.date) : new Date(),
-    };
+      userId
+    });
 
-    const workout = await db.createWorkout(workoutData);
+    const populatedWorkout = await Workout.findById(workout._id)
+      .populate('exercises.exerciseId');
 
-    return NextResponse.json(workout, { status: 201 });
+    return NextResponse.json(populatedWorkout, { status: 201 });
   } catch (error: any) {
-    console.error('Create workout error:', error);
+    console.error('Error creating workout:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error creating workout' },
       { status: 500 }
     );
   }

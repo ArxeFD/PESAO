@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronDown, Clock, X, Search, Plus, Calendar } from 'lucide-react-native';
+import { Check, ChevronDown, Clock, X, Search, Plus, Calendar, ChevronLeft, Trash2 } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
-import { Workout, Exercise } from '@/types';
+import { Workout, Exercise, WorkoutExercise } from '@/types';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useExercises } from '@/hooks/useExercises';
 import ExerciseSearchItem from '@/components/exercises/ExerciseSearchItem';
@@ -12,136 +12,138 @@ import RestTimer from '@/components/workout/RestTimer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
+import { ExerciseForm } from '@/components/workout/ExerciseForm';
+import { ExerciseSetForm } from '@/components/workout/ExerciseSetForm';
 
 export default function EditWorkoutScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { getWorkoutById, updateWorkout } = useWorkouts();
-  const { exercises, getExerciseById } = useExercises();
-  
-  const workout = getWorkoutById(id || '');
-  
-  const [workoutName, setWorkoutName] = useState(workout?.name || '');
+  const { getWorkoutById, updateWorkout, isLoading: isLoadingWorkout } = useWorkouts();
+  const { getExerciseById, exercises, isLoading: isLoadingExercises } = useExercises();
+  const [workout, setWorkout] = useState<Workout | null>(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    date: new Date(),
+    duration: 0,
+    exercises: [] as WorkoutExercise[],
+    notes: ''
+  });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedExercises, setSelectedExercises] = useState<{
-    exercise: Exercise;
-    sets: { weight: string; reps: string; id: string }[];
-  }[]>([]);
-  const [showTimer, setShowTimer] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(new Date(workout?.date || Date.now()));
-  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    if (workout) {
-      setWorkoutName(workout.name);
-      setSelectedDate(new Date(workout.date));
-      
-      // Convert workout exercises to the format used in the form
-      const formattedExercises = workout.exercises.map(exercise => {
-        const exerciseData = getExerciseById(exercise.exerciseId);
-        if (!exerciseData) return null;
-        
-        return {
-          exercise: exerciseData,
-          sets: exercise.sets.map(set => ({
-            weight: set.weight.toString(),
-            reps: set.reps.toString(),
-            id: set.id
-          }))
-        };
-      }).filter(Boolean) as {
-        exercise: Exercise;
-        sets: { weight: string; reps: string; id: string }[];
-      }[];
-      
-      setSelectedExercises(formattedExercises);
-    }
-  }, [workout]);
+    const fetchWorkout = async () => {
+      if (typeof id === 'string') {
+        try {
 
-  // Filter exercises based on search query
-  const filteredExercises = exercises.filter(exercise => 
-    exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+          const workoutData = await getWorkoutById(id);
 
-  const addExerciseToWorkout = (exercise: Exercise) => {
-    setSelectedExercises(prev => [
-      ...prev, 
-      { 
-        exercise, 
-        sets: [{ weight: '', reps: '', id: Date.now().toString() }] 
+          if (workoutData) {
+            setWorkout(workoutData);
+            setFormData({
+              name: workoutData.name,
+              date: new Date(workoutData.date),
+              duration: workoutData.duration,
+              exercises: workoutData.exercises,
+              notes: workoutData.notes
+            });
+            console.log('Set form data with exercises:', workoutData.exercises);
+          }
+        } catch (error) {
+          console.error('Error fetching workout:', error);
+          Alert.alert('Error', 'Failed to load workout');
+          router.back();
+        }
       }
-    ]);
-    setIsSearchOpen(false);
-    setSearchQuery('');
-  };
-
-  const addSet = (exerciseIndex: number) => {
-    const newSelectedExercises = [...selectedExercises];
-    newSelectedExercises[exerciseIndex].sets.push({
-      weight: newSelectedExercises[exerciseIndex].sets[newSelectedExercises[exerciseIndex].sets.length - 1].weight,
-      reps: newSelectedExercises[exerciseIndex].sets[newSelectedExercises[exerciseIndex].sets.length - 1].reps,
-      id: Date.now().toString()
-    });
-    setSelectedExercises(newSelectedExercises);
-  };
-
-  const removeSet = (exerciseIndex: number, setIndex: number) => {
-    const newSelectedExercises = [...selectedExercises];
-    newSelectedExercises[exerciseIndex].sets.splice(setIndex, 1);
-    setSelectedExercises(newSelectedExercises);
-  };
-
-  const updateSetValue = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
-    const newSelectedExercises = [...selectedExercises];
-    newSelectedExercises[exerciseIndex].sets[setIndex][field] = value;
-    setSelectedExercises(newSelectedExercises);
-  };
-
-  const removeExercise = (exerciseIndex: number) => {
-    const newSelectedExercises = [...selectedExercises];
-    newSelectedExercises.splice(exerciseIndex, 1);
-    setSelectedExercises(newSelectedExercises);
-  };
-
-  const handleFinishWorkout = () => {
-    if (selectedExercises.length === 0) {
-      return;
-    }
-    
-    const updatedWorkout: Workout = {
-      id: id || Date.now().toString(),
-      name: workoutName,
-      date: selectedDate.toISOString(),
-      duration: 60,
-      notes: '',
-      exercises: selectedExercises.map(item => ({
-        exerciseId: item.exercise.id,
-        sets: item.sets.map(set => ({
-          id: set.id,
-          weight: parseFloat(set.weight) || 0,
-          reps: parseInt(set.reps) || 0,
-          completed: true,
-        })),
-        notes: '',
-      })),
     };
-    
-    updateWorkout(updatedWorkout);
-    router.back();
+
+    fetchWorkout();
+  }, [id]);
+
+  const handleSave = async () => {
+    try {
+      if (!workout) return;
+
+      console.log('Saving workout with form data:', formData);
+      // Convert form data to workout format
+      const updatedWorkout = {
+        ...workout,
+        name: formData.name,
+        date: formData.date.toISOString(),
+        duration: formData.duration,
+        exercises: formData.exercises.map(exercise => ({
+          exerciseId: typeof exercise.exerciseId === 'string' 
+            ? exercise.exerciseId 
+            : exercise.exerciseId._id,
+          sets: exercise.sets.map(set => ({
+            _id: set._id,
+            weight: set.weight,
+            reps: set.reps,
+            completed: set.completed
+          })),
+          notes: exercise.notes
+        })),
+        notes: formData.notes
+      };
+      console.log('Updated workout data:', updatedWorkout);
+
+      await updateWorkout(workout._id, updatedWorkout);
+      router.back();
+    } catch (error) {
+      console.error('Error updating workout:', error);
+      Alert.alert('Error', 'Failed to update workout');
+    }
   };
 
-  if (!workout) {
+  const handleAddExercise = () => {
+    setIsSearchOpen(true);
+  };
+
+  const handleRemoveExercise = (index: number) => {
+    console.log('Removing exercise at index:', index);
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        exercises: prev.exercises.filter((_, i) => i !== index)
+      };
+      console.log('Updated form data after removing exercise:', updated);
+      return updated;
+    });
+  };
+
+  const handleUpdateExercise = (index: number, updatedExercise: WorkoutExercise) => {
+    console.log('Updating exercise at index:', index, 'with:', updatedExercise);
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        exercises: prev.exercises.map((exercise, i) => 
+          i === index ? updatedExercise : exercise
+        )
+      };
+      console.log('Updated form data after updating exercise:', updated);
+      return updated;
+    });
+  };
+
+  const handleUpdateSets = (exerciseIndex: number, sets: WorkoutExercise['sets']) => {
+    console.log('Updating sets for exercise at index:', exerciseIndex, 'with:', sets);
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        exercises: prev.exercises.map((exercise, i) => 
+          i === exerciseIndex ? { ...exercise, sets } : exercise
+        )
+      };
+      console.log('Updated form data after updating sets:', updated);
+      return updated;
+    });
+  };
+
+  if (isLoadingWorkout || isLoadingExercises || !workout) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.header}>
-          <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
-            <X size={24} color={theme.colors.textPrimary} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Workout Not Found</Text>
-          <View style={{ width: 40 }} />
-        </View>
-      </SafeAreaView>
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
     );
   }
 
@@ -151,21 +153,94 @@ export default function EditWorkoutScreen() {
         <TouchableOpacity style={styles.closeButton} onPress={() => router.back()}>
           <X size={24} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <TextInput
-          style={styles.workoutNameInput}
-          value={workoutName}
-          onChangeText={setWorkoutName}
-          placeholder="Workout Name"
-          placeholderTextColor={theme.colors.textSecondary}
-        />
-        <TouchableOpacity 
-          style={[styles.finishButton, selectedExercises.length === 0 && styles.finishButtonDisabled]}
-          onPress={handleFinishWorkout}
-          disabled={selectedExercises.length === 0}
-        >
-          <Check size={24} color={theme.colors.white} />
+        <Text style={styles.headerTitle}>Edit Workout</Text>
+        <TouchableOpacity onPress={handleSave} style={styles.saveButton}>
+          <Text style={styles.saveButtonText}>Save</Text>
         </TouchableOpacity>
       </View>
+
+      <ScrollView style={styles.content}>
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Name</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.name}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, name: text }))}
+            placeholder="Workout name"
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Date</Text>
+          <TextInput
+            style={styles.input}
+            value={format(formData.date, 'MMM d, yyyy')}
+            editable={false}
+          />
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Duration (minutes)</Text>
+          <TextInput
+            style={styles.input}
+            value={formData.duration.toString()}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, duration: parseInt(text) || 0 }))}
+            keyboardType="numeric"
+            placeholder="Duration in minutes"
+          />
+        </View>
+
+        <View style={styles.exercisesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Exercises</Text>
+            <TouchableOpacity onPress={handleAddExercise} style={styles.addButton}>
+              <Plus size={20} color={theme.colors.primary} />
+              <Text style={styles.addButtonText}>Add Exercise</Text>
+            </TouchableOpacity>
+          </View>
+
+          {formData.exercises.map((exercise, index) => (
+            <View key={`${typeof exercise.exerciseId === 'string' ? exercise.exerciseId : exercise.exerciseId._id}-${index}`} style={styles.exerciseCard}>
+              <View style={styles.exerciseHeader}>
+                <Text style={styles.exerciseName}>
+                  {typeof exercise.exerciseId === 'string' 
+                    ? exercises.find(e => e._id === exercise.exerciseId)?.name || 'Unknown Exercise'
+                    : exercise.exerciseId.name}
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => handleRemoveExercise(index)}
+                  style={styles.removeButton}
+                >
+                  <Trash2 size={20} color={theme.colors.danger} />
+                </TouchableOpacity>
+              </View>
+
+              <ExerciseForm
+                exercise={exercise}
+                exercises={exercises}
+                onUpdate={(updatedExercise) => handleUpdateExercise(index, updatedExercise)}
+              />
+
+              <ExerciseSetForm
+                sets={exercise.sets}
+                onUpdate={(sets) => handleUpdateSets(index, sets)}
+              />
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.formGroup}>
+          <Text style={styles.label}>Notes</Text>
+          <TextInput
+            style={[styles.input, styles.notesInput]}
+            value={formData.notes}
+            onChangeText={(text) => setFormData(prev => ({ ...prev, notes: text }))}
+            placeholder="Add notes about your workout"
+            multiline
+            numberOfLines={4}
+          />
+        </View>
+      </ScrollView>
 
       {isSearchOpen ? (
         <View style={styles.searchContainer}>
@@ -193,138 +268,37 @@ export default function EditWorkoutScreen() {
           </View>
           
           <ScrollView style={styles.searchResults}>
-            {filteredExercises.map(exercise => (
-              <ExerciseSearchItem
-                key={exercise.id}
-                exercise={exercise}
-                onPress={() => addExerciseToWorkout(exercise)}
-              />
-            ))}
+            {exercises
+              .filter(exercise => 
+                exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map(exercise => (
+                <ExerciseSearchItem
+                  key={exercise._id}
+                  exercise={exercise}
+                  onPress={() => {
+                    const newExercise: WorkoutExercise = {
+                      exerciseId: exercise,
+                      sets: [{
+                        _id: Date.now().toString(),
+                        weight: 0,
+                        reps: 0,
+                        completed: false
+                      }],
+                      notes: ''
+                    };
+                    setFormData(prev => ({
+                      ...prev,
+                      exercises: [...prev.exercises, newExercise]
+                    }));
+                    setIsSearchOpen(false);
+                    setSearchQuery('');
+                  }}
+                />
+              ))}
           </ScrollView>
         </View>
-      ) : (
-        <>
-          <TouchableOpacity 
-            style={styles.dateSelector}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Calendar size={20} color={theme.colors.textSecondary} />
-            <Text style={styles.dateText}>
-              {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            </Text>
-          </TouchableOpacity>
-
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-              onChange={(event, date) => {
-                setShowDatePicker(false);
-                if (date) {
-                  setSelectedDate(date);
-                }
-              }}
-            />
-          )}
-
-          <ScrollView style={styles.content}>
-            {selectedExercises.map((item, exerciseIndex) => (
-              <Animated.View 
-                key={`${item.exercise.id}-${exerciseIndex}`}
-                style={styles.exerciseCard}
-                entering={FadeInDown.delay(exerciseIndex * 100).duration(300)}
-              >
-                <View style={styles.exerciseHeader}>
-                  <View>
-                    <Text style={styles.exerciseName}>{item.exercise.name}</Text>
-                    <Text style={styles.exerciseCategory}>{item.exercise.category}</Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => removeExercise(exerciseIndex)}
-                    style={styles.removeExerciseButton}
-                  >
-                    <X size={16} color={theme.colors.textSecondary} />
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.setHeaders}>
-                  <Text style={styles.setHeaderText}>SET</Text>
-                  <Text style={styles.setHeaderText}>KG</Text>
-                  <Text style={styles.setHeaderText}>REPS</Text>
-                  <Text style={styles.setHeaderText}></Text>
-                </View>
-
-                {item.sets.map((set, setIndex) => (
-                  <View key={set.id} style={styles.setRow}>
-                    <Text style={styles.setText}>{setIndex + 1}</Text>
-                    <TextInput
-                      style={styles.setInput}
-                      value={set.weight}
-                      onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'weight', value)}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={theme.colors.textSecondary}
-                    />
-                    <TextInput
-                      style={styles.setInput}
-                      value={set.reps}
-                      onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'reps', value)}
-                      keyboardType="numeric"
-                      placeholder="0"
-                      placeholderTextColor={theme.colors.textSecondary}
-                    />
-                    {item.sets.length > 1 && (
-                      <TouchableOpacity
-                        onPress={() => removeSet(exerciseIndex, setIndex)}
-                        style={styles.removeSetButton}
-                      >
-                        <X size={14} color={theme.colors.textSecondary} />
-                      </TouchableOpacity>
-                    )}
-                    {item.sets.length === 1 || setIndex !== item.sets.length - 1 ? (
-                      <View style={styles.emptyAction} />
-                    ) : null}
-                  </View>
-                ))}
-
-                <View style={styles.setActions}>
-                  <TouchableOpacity 
-                    style={styles.addSetButton}
-                    onPress={() => addSet(exerciseIndex)}
-                  >
-                    <Plus size={14} color={theme.colors.primary} />
-                    <Text style={styles.addSetText}>Add Set</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.restTimerButton}
-                    onPress={() => setShowTimer(true)}
-                  >
-                    <Clock size={14} color={theme.colors.primary} />
-                    <Text style={styles.addSetText}>Rest Timer</Text>
-                  </TouchableOpacity>
-                </View>
-              </Animated.View>
-            ))}
-
-            <TouchableOpacity
-              style={styles.addExerciseButton}
-              onPress={() => setIsSearchOpen(true)}
-            >
-              <Plus size={20} color={theme.colors.primary} />
-              <Text style={styles.addExerciseText}>Add Exercise</Text>
-            </TouchableOpacity>
-          </ScrollView>
-          
-          {showTimer && (
-            <RestTimer
-              onClose={() => setShowTimer(false)}
-              defaultTime={90}
-            />
-          )}
-        </>
-      )}
+      ) : null}
     </SafeAreaView>
   );
 }
@@ -356,150 +330,87 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: theme.colors.textPrimary,
   },
-  workoutNameInput: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 18,
-    color: theme.colors.textPrimary,
-    textAlign: 'center',
-    flex: 1,
-    paddingVertical: 8,
+  saveButton: {
+    padding: 8,
   },
-  finishButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  finishButtonDisabled: {
-    opacity: 0.5,
+  saveButtonText: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 16,
+    color: theme.colors.primary,
   },
   content: {
     flex: 1,
     padding: 16,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+  },
+  input: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.card,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  notesInput: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+  exercisesSection: {
+    marginTop: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontFamily: 'Inter-SemiBold',
+    fontSize: 18,
+    color: theme.colors.textPrimary,
+  },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+  },
+  addButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: theme.colors.primary,
+    marginLeft: 4,
   },
   exerciseCard: {
     backgroundColor: theme.colors.card,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   exerciseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   exerciseName: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
     color: theme.colors.textPrimary,
   },
-  exerciseCategory: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  removeExerciseButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  setHeaders: {
-    flexDirection: 'row',
-    marginBottom: 8,
-    paddingHorizontal: 4,
-  },
-  setHeaderText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    width: 50,
-    textAlign: 'center',
-  },
-  setRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  setText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    width: 50,
-    textAlign: 'center',
-  },
-  setInput: {
-    backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    marginHorizontal: 4,
-    width: 50,
-    textAlign: 'center',
-    fontFamily: 'Inter-Medium',
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-  },
-  removeSetButton: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: theme.colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  emptyAction: {
-    width: 24,
-    marginLeft: 8,
-  },
-  setActions: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  addSetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-    marginRight: 12,
-  },
-  restTimerButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  },
-  addSetText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 13,
-    color: theme.colors.primary,
-    marginLeft: 6,
-  },
-  addExerciseButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 32,
-  },
-  addExerciseText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: theme.colors.primary,
-    marginLeft: 8,
+  removeButton: {
+    padding: 4,
   },
   searchContainer: {
     flex: 1,
@@ -515,44 +426,28 @@ const styles = StyleSheet.create({
     borderBottomColor: theme.colors.border,
   },
   searchTitle: {
-    fontFamily: 'Inter-Bold',
+    fontFamily: 'Inter-SemiBold',
     fontSize: 18,
     color: theme.colors.textPrimary,
   },
   searchInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    margin: 16,
     paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
   },
   searchIcon: {
     marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    height: 48,
     fontFamily: 'Inter-Regular',
     fontSize: 16,
     color: theme.colors.textPrimary,
   },
   searchResults: {
     flex: 1,
-  },
-  dateSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    padding: 16,
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 12,
-  },
-  dateText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    marginLeft: 12,
   },
 }); 

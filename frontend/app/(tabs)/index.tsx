@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -12,15 +12,22 @@ type SortOption = 'most_recent' | 'oldest' | 'most_volume' | 'most_sets';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { recentWorkouts, sortWorkouts } = useWorkouts();
+  const { workouts, sortWorkouts, isLoading, error } = useWorkouts();
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [currentSort, setCurrentSort] = useState<SortOption>('most_recent');
-  const [displayedWorkouts, setDisplayedWorkouts] = useState(recentWorkouts);
+  const [displayedWorkouts, setDisplayedWorkouts] = useState(workouts);
+
+  useEffect(() => {
+    if (workouts.length > 0) {
+      const sorted = sortWorkouts(currentSort);
+      setDisplayedWorkouts(sorted.slice(0, 3));
+    } else {
+      setDisplayedWorkouts([]);
+    }
+  }, [workouts, currentSort]);
 
   const handleSort = (option: SortOption) => {
     setCurrentSort(option);
-    const sorted = sortWorkouts(option);
-    setDisplayedWorkouts(sorted.slice(0, 3));
     setShowFilterMenu(false);
   };
 
@@ -92,12 +99,20 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {displayedWorkouts.length > 0 ? (
+          {isLoading ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>Loading workouts...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>{error}</Text>
+            </View>
+          ) : displayedWorkouts.length > 0 ? (
             displayedWorkouts.map((workout) => (
               <WorkoutCard 
-                key={workout.id} 
+                key={workout._id} 
                 workout={workout} 
-                onPress={() => router.push(`/workout/${workout.id}`)} 
+                onPress={() => router.push(`/workout/${workout._id}`)} 
               />
             ))
           ) : (
@@ -106,16 +121,13 @@ export default function HomeScreen() {
               <Text style={styles.emptyStateText}>No recent workouts</Text>
               <TouchableOpacity 
                 style={styles.emptyStateButton}
-                onPress={() => router.push('/workout/new')}
+                onPress={() => router.push('/new-workout')}
               >
                 <Text style={styles.emptyStateButtonText}>Start a Workout</Text>
               </TouchableOpacity>
             </View>
           )}
         </View>
-
-  
- 
       </ScrollView>
     </SafeAreaView>
   );

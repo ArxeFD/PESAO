@@ -9,6 +9,7 @@ import { useWorkouts } from '@/hooks/useWorkouts';
 import { useExercises } from '@/hooks/useExercises';
 import ProgressExerciseItem from '@/components/progress/ProgressExerciseItem';
 import EmptyState from '@/components/ui/EmptyState';
+import { format } from 'date-fns';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -16,12 +17,12 @@ export default function ProgressScreen() {
   const { workouts } = useWorkouts();
   const { exercises } = useExercises();
   const [selectedExercise, setSelectedExercise] = useState(
-    exercises.length > 0 ? exercises[0].id : ''
+    exercises.length > 0 ? exercises[0]._id : ''
   );
   const [chartType, setChartType] = useState<'weight' | 'volume'>('weight');
 
   // Get selected exercise data
-  const selectedExerciseData = exercises.find(ex => ex.id === selectedExercise);
+  const selectedExerciseData = exercises.find(ex => ex._id === selectedExercise);
   
   // Get workout history for the selected exercise
   const exerciseHistory = workouts
@@ -43,141 +44,58 @@ export default function ProgressScreen() {
     })
     .filter(Boolean)
     .sort((a, b) => a!.date.getTime() - b!.date.getTime())
-    .slice(-7); // Get last 7 workouts
+    .slice(-7);
 
-  // Prepare chart data
   const chartData = {
-    labels: exerciseHistory.map(history => 
-      history!.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    ),
+    labels: exerciseHistory.map(h => format(h!.date, 'MMM d')),
     datasets: [
       {
-        data: chartType === 'weight' 
-          ? exerciseHistory.map(history => history!.maxWeight)
-          : exerciseHistory.map(history => history!.totalVolume),
-        color: () => theme.colors.primary,
-        strokeWidth: 2
-      }
+        data: exerciseHistory.map(h => 
+          chartType === 'weight' ? h!.maxWeight : h!.totalVolume
+        ),
+        color: (opacity = 1) => theme.colors.primary,
+        strokeWidth: 2,
+      },
     ],
-    legend: [chartType === 'weight' ? 'Max Weight (kg)' : 'Total Volume (kg)']
   };
 
-  const hasData = exerciseHistory.length > 0;
+  const chartConfig = {
+    backgroundGradientFrom: theme.colors.card,
+    backgroundGradientTo: theme.colors.card,
+    color: (opacity = 1) => theme.colors.primary,
+    strokeWidth: 2,
+    barPercentage: 0.5,
+    useShadowColorFromDataset: false,
+    decimalPlaces: 0,
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Progress</Text>
-        </View>
-
-        <View style={styles.exerciseSelector}>
-          <TouchableOpacity style={styles.selectorButton}>
-            {selectedExerciseData && (
-              <>
-                <Text style={styles.selectedExerciseName}>
-                  {selectedExerciseData.name}
-                </Text>
-                <ChevronDown size={20} color={theme.colors.textPrimary} />
-              </>
-            )}
+          <Text style={styles.title}>Progress</Text>
+          <TouchableOpacity 
+            style={styles.chartTypeButton}
+            onPress={() => setChartType(prev => prev === 'weight' ? 'volume' : 'weight')}
+          >
+            <Text style={styles.chartTypeText}>
+              {chartType === 'weight' ? 'Weight' : 'Volume'}
+            </Text>
+            <ChevronDown size={16} color={theme.colors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {hasData ? (
-          <>
-            <View style={styles.chartContainer}>
-              <View style={styles.chartHeader}>
-                <Text style={styles.chartTitle}>
-                  {chartType === 'weight' ? 'Max Weight Progress' : 'Volume Progress'}
-                </Text>
-                <View style={styles.chartTypeSelector}>
-                  <TouchableOpacity
-                    style={[
-                      styles.chartTypeButton,
-                      chartType === 'weight' && styles.activeChartTypeButton
-                    ]}
-                    onPress={() => setChartType('weight')}
-                  >
-                    <Text
-                      style={[
-                        styles.chartTypeText,
-                        chartType === 'weight' && styles.activeChartTypeText
-                      ]}
-                    >
-                      Weight
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[
-                      styles.chartTypeButton,
-                      chartType === 'volume' && styles.activeChartTypeButton
-                    ]}
-                    onPress={() => setChartType('volume')}
-                  >
-                    <Text
-                      style={[
-                        styles.chartTypeText,
-                        chartType === 'volume' && styles.activeChartTypeText
-                      ]}
-                    >
-                      Volume
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <LineChart
-                data={chartData}
-                width={screenWidth - 32}
-                height={220}
-                chartConfig={{
-                  backgroundColor: theme.colors.card,
-                  backgroundGradientFrom: theme.colors.card,
-                  backgroundGradientTo: theme.colors.card,
-                  decimalPlaces: 0,
-                  color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-                  labelColor: () => theme.colors.textSecondary,
-                  style: {
-                    borderRadius: 16,
-                  },
-                  propsForDots: {
-                    r: '5',
-                    strokeWidth: '2',
-                    stroke: theme.colors.primary,
-                  },
-                }}
-                bezier
-                style={styles.chart}
-              />
-            </View>
-
-            <View style={styles.statsContainer}>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>
-                  {exerciseHistory[exerciseHistory.length - 1]!.maxWeight} kg
-                </Text>
-                <Text style={styles.statLabel}>Current Max</Text>
-              </View>
-              
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>
-                  {exerciseHistory[0]!.maxWeight} kg
-                </Text>
-                <Text style={styles.statLabel}>Starting Max</Text>
-              </View>
-              
-              <View style={styles.statCard}>
-                <Text style={[
-                  styles.statValue, 
-                  { color: theme.colors.success }
-                ]}>
-                  +{(exerciseHistory[exerciseHistory.length - 1]!.maxWeight - exerciseHistory[0]!.maxWeight).toFixed(1)} kg
-                </Text>
-                <Text style={styles.statLabel}>Increase</Text>
-              </View>
-            </View>
-          </>
+        {exerciseHistory.length > 0 ? (
+          <View style={styles.chartContainer}>
+            <LineChart
+              data={chartData}
+              width={screenWidth - 40}
+              height={220}
+              chartConfig={chartConfig}
+              bezier
+              style={styles.chart}
+            />
+          </View>
         ) : (
           <EmptyState
             icon={<BarChart3 size={48} color={theme.colors.border} />}
@@ -195,11 +113,12 @@ export default function ProgressScreen() {
           
           {exercises.map(exercise => (
             <ProgressExerciseItem
-              key={exercise.id}
+              key={exercise._id}
+              _id={exercise._id}
               name={exercise.name}
               category={exercise.category}
-              isSelected={selectedExercise === exercise.id}
-              onPress={() => setSelectedExercise(exercise.id)}
+              isSelected={selectedExercise === exercise._id}
+              onPress={() => setSelectedExercise(exercise._id)}
             />
           ))}
         </View>
@@ -213,107 +132,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
   },
-  scrollView: {
+  content: {
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
-  headerTitle: {
+  title: {
     fontFamily: 'Inter-Bold',
     fontSize: 24,
     color: theme.colors.textPrimary,
   },
-  exerciseSelector: {
-    paddingHorizontal: 20,
-    marginBottom: 16,
-  },
-  selectorButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 12,
-  },
-  selectedExerciseName: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    marginRight: 8,
-  },
-  chartContainer: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    marginHorizontal: 16,
-    padding: 16,
-    marginBottom: 16,
-  },
-  chartHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  chartTitle: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-  },
-  chartTypeSelector: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    padding: 2,
-  },
   chartTypeButton: {
-    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.card,
     paddingHorizontal: 12,
-    borderRadius: 6,
-  },
-  activeChartTypeButton: {
-    backgroundColor: theme.colors.primary,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   chartTypeText: {
     fontFamily: 'Inter-Medium',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
+    fontSize: 14,
+    color: theme.colors.textPrimary,
+    marginRight: 4,
   },
-  activeChartTypeText: {
-    color: theme.colors.white,
+  chartContainer: {
+    backgroundColor: theme.colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 24,
   },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginBottom: 24,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: theme.colors.card,
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginHorizontal: 4,
-  },
-  statValue: {
-    fontFamily: 'Inter-Bold',
-    fontSize: 16,
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-  },
   exercisesSection: {
-    marginHorizontal: 16,
-    marginBottom: 32,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
   sectionTitle: {
     fontFamily: 'Inter-SemiBold',

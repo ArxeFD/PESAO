@@ -1,12 +1,14 @@
 // Exercise types
 export interface Exercise {
-  id: string;
+  _id: string;
   name: string;
   category: ExerciseCategory;
   primaryMuscles: Muscle[];
   secondaryMuscles: Muscle[];
   instructions: string;
   equipment: Equipment;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export type ExerciseCategory = 
@@ -56,22 +58,25 @@ export type Equipment =
 
 // Workout types
 export interface Workout {
-  id: string;
+  _id: string;
   name: string;
   date: string;
   duration: number; // in minutes
   exercises: WorkoutExercise[];
   notes: string;
+  userId: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WorkoutExercise {
-  exerciseId: string;
+  exerciseId: string | Exercise; // Can be either string (ID) or full Exercise object
   sets: ExerciseSet[];
   notes: string;
 }
 
 export interface ExerciseSet {
-  id: string;
+  _id: string;
   weight: number;
   reps: number;
   completed: boolean;
@@ -79,11 +84,13 @@ export interface ExerciseSet {
 }
 
 export interface WorkoutTemplate {
-  id: string;
+  _id: string;
   name: string;
   exercises: WorkoutTemplateExercise[];
+  userId: string;
   createdAt: string;
   lastPerformed?: string;
+  updatedAt?: string;
 }
 
 export interface WorkoutTemplateExercise {
@@ -93,20 +100,28 @@ export interface WorkoutTemplateExercise {
 
 // Progress types
 export interface Progress {
+  _id: string;
   exerciseId: string;
+  userId: string;
   date: string;
   maxWeight: number;
   maxReps: number;
   volume: number; // total weight * reps across all sets
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // User profile types
 export interface UserProfile {
+  _id: string;
   name: string;
+  email: string;
   photo?: string;
   bodyweight?: number;
   height?: number;
   units: 'kg' | 'lb';
   distanceUnits: 'km' | 'mi';
   restTimer: number; // in seconds
+  createdAt?: string;
+  updatedAt?: string;
 }

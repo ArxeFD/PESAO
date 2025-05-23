@@ -1,98 +1,100 @@
 import { NextResponse } from 'next/server';
-import { headers } from 'next/headers';
 import connectDB from '@/lib/db';
+import Workout from '@/models/Workout';
 import { z } from 'zod';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
-const exerciseSchema = z.object({
-  name: z.string(),
-  sets: z.number().min(1),
-  reps: z.number().min(1),
+const setSchema = z.object({
   weight: z.number().min(0),
-  notes: z.string().optional(),
+  reps: z.number().min(1),
+  completed: z.boolean().default(false)
+});
+
+const workoutExerciseSchema = z.object({
+  exerciseId: z.string(),
+  sets: z.array(setSchema),
+  notes: z.string().optional()
 });
 
 const workoutSchema = z.object({
-  name: z.string(),
-  description: z.string().optional(),
-  exercises: z.array(exerciseSchema),
+  name: z.string().min(1),
+  date: z.string().datetime(),
   duration: z.number().min(0),
-  date: z.string().optional(),
+  notes: z.string().optional(),
+  exercises: z.array(workoutExerciseSchema)
 });
 
-async function getUserIdFromToken(authHeader: string | null) {
+// Middleware para verificar el token
+const verifyToken = async (request: Request) => {
+  const authHeader = request.headers.get('authorization');
   if (!authHeader?.startsWith('Bearer ')) {
-    throw new Error('Invalid authorization header');
+    return null;
   }
 
-  const token = authHeader.replace('Bearer ', '');
-  const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
-  return decoded.userId;
-}
+  const token = authHeader.split(' ')[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+    return decoded.userId;
+  } catch (error) {
+    return null;
+  }
+};
 
+// GET /api/workouts/[id]
 export async function GET(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const db = await connectDB();
-    const headersList = headers();
-    const userId = await getUserIdFromToken(headersList.get('authorization'));
+    const userId = await verifyToken(request);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
 
-    const workout = await db.findWorkoutById(params.id);
+    await connectDB();
+    const workout = await Workout.findOne({ _id: params.id, userId })
+      .populate('exercises.exerciseId');
+
     if (!workout) {
       return NextResponse.json(
         { error: 'Workout not found' },
         { status: 404 }
-      );
-    }
-
-    if (workout.userId !== userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 403 }
       );
     }
 
     return NextResponse.json(workout);
   } catch (error: any) {
-    console.error('Fetch workout error:', error);
+    console.error('Error fetching workout:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error fetching workout' },
       { status: 500 }
     );
   }
 }
 
-export async function PUT(
+// PATCH /api/workouts/[id]
+export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const db = await connectDB();
-    const headersList = headers();
-    const userId = await getUserIdFromToken(headersList.get('authorization'));
-
-    const workout = await db.findWorkoutById(params.id);
-    if (!workout) {
-      return NextResponse.json(
-        { error: 'Workout not found' },
-        { status: 404 }
-      );
-    }
-
-    if (workout.userId !== userId) {
+    const userId = await verifyToken(request);
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 403 }
+        { status: 401 }
       );
     }
 
+    await connectDB();
     const body = await request.json();
-    const validation = workoutSchema.safeParse(body);
-
+    
+    const validation = workoutSchema.partial().safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
@@ -100,34 +102,7 @@ export async function PUT(
       );
     }
 
-    const workoutData = {
-      ...validation.data,
-      userId,
-      date: validation.data.date ? new Date(validation.data.date) : new Date(),
-    };
-
-    const updatedWorkout = await db.updateWorkout(params.id, workoutData);
-
-    return NextResponse.json(updatedWorkout);
-  } catch (error: any) {
-    console.error('Update workout error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function DELETE(
-  request: Request,
-  { params }: { params: { id: string } }
-) {
-  try {
-    const db = await connectDB();
-    const headersList = headers();
-    const userId = await getUserIdFromToken(headersList.get('authorization'));
-
-    const workout = await db.findWorkoutById(params.id);
+    const workout = await Workout.findOne({ _id: params.id, userId });
     if (!workout) {
       return NextResponse.json(
         { error: 'Workout not found' },
@@ -135,20 +110,52 @@ export async function DELETE(
       );
     }
 
-    if (workout.userId !== userId) {
+    const updatedWorkout = await Workout.findByIdAndUpdate(
+      params.id,
+      { $set: validation.data },
+      { new: true }
+    ).populate('exercises.exerciseId');
+
+    return NextResponse.json(updatedWorkout);
+  } catch (error: any) {
+    console.error('Error updating workout:', error);
+    return NextResponse.json(
+      { error: 'Error updating workout' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/workouts/[id]
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = await verifyToken(request);
+    if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 403 }
+        { status: 401 }
       );
     }
 
-    await db.deleteWorkout(params.id);
+    await connectDB();
+    const workout = await Workout.findOne({ _id: params.id, userId });
+    
+    if (!workout) {
+      return NextResponse.json(
+        { error: 'Workout not found' },
+        { status: 404 }
+      );
+    }
 
+    await Workout.findByIdAndDelete(params.id);
     return NextResponse.json({ message: 'Workout deleted successfully' });
   } catch (error: any) {
-    console.error('Delete workout error:', error);
+    console.error('Error deleting workout:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error deleting workout' },
       { status: 500 }
     );
   }

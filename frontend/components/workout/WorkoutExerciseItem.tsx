@@ -1,37 +1,32 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { theme } from '@/constants/theme';
-import { Exercise } from '@/types';
+import { WorkoutExercise } from '@/types';
 
 interface WorkoutExerciseItemProps {
-  exercise: Exercise;
-  sets: {
-    id: string;
-    weight: number;
-    reps: number;
-    completed: boolean;
-  }[];
+  exercise: WorkoutExercise;
+  index: number;
 }
 
-export default function WorkoutExerciseItem({ exercise, sets }: WorkoutExerciseItemProps) {
+export default function WorkoutExerciseItem({ exercise, index }: WorkoutExerciseItemProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.name}>{exercise.name}</Text>
-          <Text style={styles.category}>{exercise.category}</Text>
+          <Text style={styles.name}>{exercise.exerciseId.name}</Text>
+          <Text style={styles.category}>{exercise.exerciseId.category}</Text>
         </View>
-          </View>
+      </View>
           
       <View style={styles.setsContainer}>
-          {sets.map((set, index) => (
-            <View key={set.id} style={styles.setRow}>
-            <Text style={styles.setText}>Set {index + 1}</Text>
+        {exercise.sets.map((set, setIndex) => (
+          <View key={set._id} style={styles.setRow}>
+            <Text style={styles.setText}>Set {setIndex + 1}</Text>
             <Text style={styles.setValue}>{set.weight} kg</Text>
             <Text style={styles.setValue}>{set.reps} reps</Text>
           </View>
         ))}
-        </View>
+      </View>
     </View>
   );
 }
