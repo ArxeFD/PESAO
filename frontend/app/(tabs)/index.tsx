@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Dumbbell, Plus, Filter, TrendingUp, Clock, ChevronDown } from 'lucide-react-native';
@@ -12,10 +12,11 @@ type SortOption = 'most_recent' | 'oldest' | 'most_volume' | 'most_sets';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { workouts, sortWorkouts, isLoading, error } = useWorkouts();
+  const { workouts, sortWorkouts, isLoading, error, refetch } = useWorkouts();
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [currentSort, setCurrentSort] = useState<SortOption>('most_recent');
   const [displayedWorkouts, setDisplayedWorkouts] = useState(workouts);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (workouts.length > 0) {
@@ -31,9 +32,31 @@ export default function HomeScreen() {
     setShowFilterMenu(false);
   };
 
+  const onRefresh = React.useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await refetch();
+    } catch (error) {
+      console.error('Error refreshing workouts:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetch]);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.logo}>PESAO</Text>
           <View style={styles.filterContainer}>
