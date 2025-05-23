@@ -8,16 +8,26 @@ import { useAuth } from '@/providers/AuthProvider';
 export default function LoginScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      setError('Email and password are required');
+      return;
+    }
+
     try {
+      setIsLoading(true);
+      setError('');
       await signIn(email, password);
       router.replace('/(tabs)');
-    } catch (err) {
-      setError('Invalid credentials');
+    } catch (err: any) {
+      setError(err.message || 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -39,6 +49,7 @@ export default function LoginScreen() {
             placeholderTextColor={theme.colors.textSecondary}
             autoCapitalize="none"
             keyboardType="email-address"
+            editable={!isLoading}
           />
         </View>
 
@@ -51,14 +62,21 @@ export default function LoginScreen() {
             placeholder="Enter your password"
             placeholderTextColor={theme.colors.textSecondary}
             secureTextEntry
+            editable={!isLoading}
           />
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
-        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <TouchableOpacity 
+          style={[styles.button, isLoading && styles.buttonDisabled]} 
+          onPress={handleLogin}
+          disabled={isLoading}
+        >
           <LogIn size={20} color={theme.colors.white} />
-          <Text style={styles.buttonText}>Sign In</Text>
+          <Text style={styles.buttonText}>
+            {isLoading ? 'Signing in...' : 'Sign In'}
+          </Text>
         </TouchableOpacity>
 
         <Link href="/register" asChild>
@@ -85,61 +103,58 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    paddingTop: 80,
+    paddingTop: 60,
     paddingBottom: 40,
   },
   logo: {
     fontFamily: 'Inter-Bold',
-    fontSize: 36,
+    fontSize: 32,
     color: theme.colors.primary,
-    letterSpacing: 2,
+    marginBottom: 8,
   },
   subtitle: {
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter-Regular',
     fontSize: 16,
     color: theme.colors.textSecondary,
-    marginTop: 8,
   },
   form: {
-    backgroundColor: theme.colors.card,
-    borderRadius: 16,
-    padding: 24,
-    margin: 20,
-    zIndex: 1,
+    paddingHorizontal: 20,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   label: {
     fontFamily: 'Inter-Medium',
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: theme.colors.textPrimary,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.background,
+    backgroundColor: theme.colors.card,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: theme.colors.textPrimary,
     fontFamily: 'Inter-Regular',
     fontSize: 16,
+    color: theme.colors.textPrimary,
   },
   error: {
     fontFamily: 'Inter-Regular',
     fontSize: 14,
-    color: theme.colors.danger,
+    color: theme.colors.error,
     marginBottom: 16,
-    textAlign: 'center',
   },
   button: {
     backgroundColor: theme.colors.primary,
     borderRadius: 8,
-    paddingVertical: 14,
+    paddingVertical: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     fontFamily: 'Inter-SemiBold',
@@ -157,12 +172,14 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     color: theme.colors.primary,
-    fontFamily: 'Inter-Medium',
+    fontFamily: 'Inter-SemiBold',
   },
   backgroundImage: {
     position: 'absolute',
-    width: '100%',
-    height: '100%',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
     opacity: 0.1,
   },
 });

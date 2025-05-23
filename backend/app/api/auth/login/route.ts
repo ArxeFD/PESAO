@@ -13,12 +13,16 @@ const loginSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    console.log('Starting login process...');
     await connectDB();
     
     const body = await request.json();
+    console.log('Received login request for email:', body.email);
+    
     const validation = loginSchema.safeParse(body);
     
     if (!validation.success) {
+      console.log('Validation failed:', validation.error.issues);
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
         { status: 400 }
@@ -28,22 +32,28 @@ export async function POST(request: Request) {
     const { email, password } = validation.data;
 
     // Find user
+    console.log('Searching for user with email:', email);
     const user = await User.findOne({ email });
+    
     if (!user) {
+      console.log('User not found');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
+    console.log('User found, verifying password...');
 
-    // Verify password
     const isValidPassword = await user.comparePassword(password);
+    
     if (!isValidPassword) {
+      console.log('Invalid password');
       return NextResponse.json(
         { error: 'Invalid credentials' },
         { status: 401 }
       );
     }
+    console.log('Password verified successfully');
 
     // Generate JWT token
     const token = jwt.sign(
@@ -58,15 +68,23 @@ export async function POST(request: Request) {
         id: user._id,
         email: user.email,
         name: user.name,
+        role: user.role,
+        weight: user.weight,
+        height: user.height
       },
       token,
     };
 
+    console.log('Login successful for user:', user.email);
     return NextResponse.json(response);
   } catch (error: any) {
-    console.error('Login error:', error);
+    console.error('Login error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }

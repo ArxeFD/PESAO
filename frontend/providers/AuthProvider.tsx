@@ -1,23 +1,24 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type User = {
   id: string;
   name: string;
   email: string;
+  role: 'user' | 'admin';
+  weight?: number;
+  height?: number;
 };
 
 type AuthContextType = {
   user: User | null;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
-  signOut: () => void;
+  signUp: (name: string, email: string, password: string, weight?: number, height?: number) => Promise<void>;
+  signOut: () => Promise<void>;
+  isLoading: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Simulated admin credentials
-const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_PASSWORD = 'admin123';
 
 // Base URL for API calls
 const API_BASE_URL = __DEV__ 
@@ -26,45 +27,127 @@ const API_BASE_URL = __DEV__
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check for stored user data on mount
+  useEffect(() => {
+    const loadStoredUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        const token = await AsyncStorage.getItem('token');
+        
+        if (storedUser && token) {
+          setUser(JSON.parse(storedUser));
+        }
+      } catch (error) {
+        console.error('Error loading stored user:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadStoredUser();
+  }, []);
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Check if backend is accessible
-      const healthResponse = await fetch(`${API_BASE_URL}/health`);
-      const healthData = await healthResponse.json();
-      console.log('Backend connection status:', healthData.message);
+      
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-      // Use hardcoded credentials
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        setUser({
-          id: '1',
-          name: 'Admin',
-          email: ADMIN_EMAIL,
-        });
-      } else {
-        throw new Error('Invalid credentials');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
       }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      throw new Error('Could not connect to backend or invalid credentials');
+
+      const userData = {
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        weight: data.user.weight,
+        height: data.user.height,
+      };
+
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await AsyncStorage.setItem('token', data.token);
+    } catch (error: any) {
+      console.error('Sign in error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      throw error;
     }
   };
 
-  const signUp = async (name: string, email: string, password: string) => {
-    // For now, just simulate registration
-    setUser({
-      id: Date.now().toString(),
-      name,
-      email,
-    });
+  const signUp = async (name: string, email: string, password: string, weight?: number, height?: number) => {
+    try {
+      
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          weight,
+          height
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Register response:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Registration failed');
+      }
+
+      const userData = {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        role: data.role,
+        weight: data.weight,
+        height: data.height,
+      };
+
+      setUser(userData);
+      await AsyncStorage.setItem('user', JSON.stringify(userData));
+      await AsyncStorage.setItem('token', data.token);
+    } catch (error: any) {
+      console.error('Sign up error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      throw error;
+    }
   };
 
-  const signOut = () => {
-    setUser(null);
+  const signOut = async () => {
+    try {
+      // Clear all auth data
+      await AsyncStorage.multiRemove(['user', 'token']);
+      // Clear the user state
+      setUser(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+      throw error;
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, signIn, signUp, signOut, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

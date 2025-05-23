@@ -16,15 +16,15 @@ export default function ProfileScreen() {
   const [darkMode, setDarkMode] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [showPlateCalculator, setShowPlateCalculator] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const [error, setError] = useState('');
   
   // Profile state
   const [showEditModal, setShowEditModal] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: 'Arseniy Filippov',
-    weight: '82.5',
-    height: '182'
+    name: user?.name || '',
+    weight: user?.weight?.toString() || '',
+    height: user?.height?.toString() || ''
   });
   const [editData, setEditData] = useState({
     name: '',
@@ -35,9 +35,10 @@ export default function ProfileScreen() {
   const handleLogout = async () => {
     try {
       await signOut();
-      router.replace('/(auth)');
+      router.replace('/(auth)/login');
     } catch (err) {
-      setError('Invalid credentials');
+      console.error('Logout error:', err);
+      setError('Error during logout');
     }
   };
 
@@ -114,7 +115,6 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <LogOut size={20} color={theme.colors.danger} />
             <Text style={styles.logoutButtonText}>Log Out</Text>

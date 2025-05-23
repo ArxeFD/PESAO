@@ -8,6 +8,8 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(2),
+  weight: z.number().min(0),
+  height: z.number().min(0)
 });
 
 export async function POST(request: Request) {
@@ -15,16 +17,19 @@ export async function POST(request: Request) {
     await connectDB();
     
     const body = await request.json();
+    console.log('Received registration request for email:', body.email);
+
     const validation = registerSchema.safeParse(body);
     
     if (!validation.success) {
+      console.log('Validation error:', validation.error.issues);
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
         { status: 400 }
       );
     }
 
-    const { email, password, name } = validation.data;
+    const { email, password, name, weight, height } = validation.data;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -35,12 +40,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create new user
+    // Create new user with plain password
+    // The User model's pre-save hook will handle the hashing
     const user = await User.create({
       email,
-      password,
+      password, // This will be hashed by the User model
       name,
-      role: 'user'
+      role: 'user',
+      weight: Number(weight),
+      height: Number(height)
     });
 
     // Remove password from response
@@ -48,13 +56,19 @@ export async function POST(request: Request) {
       id: user._id,
       email: user.email,
       name: user.name,
+      role: user.role,
+      weight: user.weight,
+      height: user.height,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     };
 
+    console.log('User registered successfully:', userResponse.email);
     return NextResponse.json(userResponse, { status: 201 });
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error.message },
       { status: 500 }
     );
   }
