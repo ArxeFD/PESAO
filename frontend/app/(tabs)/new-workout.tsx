@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronDown, Clock, X, Search, Plus, Calendar } from 'lucide-react-native';
+import { Check, ChevronDown, X, Search, Plus, Calendar } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { Workout, Exercise } from '@/types';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useExercises } from '@/hooks/useExercises';
 import ExerciseSearchItem from '@/components/exercises/ExerciseSearchItem';
-import RestTimer from '@/components/workout/RestTimer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format, parseISO } from 'date-fns';
@@ -28,7 +27,6 @@ export default function NewWorkoutScreen() {
     exercise: Exercise;
     sets: { weight: string; reps: string; _id: string }[];
   }[]>([]);
-  const [showTimer, setShowTimer] = useState(false);
   const [selectedDate, setSelectedDate] = useState(() => {
     if (params.date) {
       return parseISO(params.date as string);
@@ -36,6 +34,7 @@ export default function NewWorkoutScreen() {
     return new Date();
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [duration, setDuration] = useState('60');
 
   // Reset state when screen comes into focus
   useFocusEffect(
@@ -47,7 +46,6 @@ export default function NewWorkoutScreen() {
       } else {
         setSelectedDate(new Date());
       }
-      setShowTimer(false);
       setIsSearchOpen(false);
       setSearchQuery('');
     }, [params.date])
@@ -106,7 +104,7 @@ export default function NewWorkoutScreen() {
     const newWorkout: Omit<Workout, '_id' | 'createdAt' | 'updatedAt'> = {
       name: workoutName,
       date: selectedDate.toISOString(),
-      duration: 60,
+      duration: parseInt(duration) || 60,
       notes: '',
       userId: user.id,
       exercises: selectedExercises.map(item => ({
@@ -185,6 +183,44 @@ export default function NewWorkoutScreen() {
       ) : (
         <>
           <ScrollView style={styles.content}>
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Date</Text>
+              <TouchableOpacity 
+                style={styles.input}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Text style={styles.dateText}>
+                  {format(selectedDate, 'MMM d, yyyy')}
+                </Text>
+                <Calendar size={20} color={theme.colors.textSecondary} />
+              </TouchableOpacity>
+              {showDatePicker && (
+                <DateTimePicker
+                  value={selectedDate}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                  onChange={(event, date) => {
+                    setShowDatePicker(false);
+                    if (date) {
+                      setSelectedDate(date);
+                    }
+                  }}
+                />
+              )}
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Duration (minutes)</Text>
+              <TextInput
+                style={styles.input}
+                value={duration}
+                onChangeText={setDuration}
+                keyboardType="numeric"
+                placeholder="Duration in minutes"
+                placeholderTextColor={theme.colors.textSecondary}
+              />
+            </View>
+
             {selectedExercises.map((item, exerciseIndex) => (
               <Animated.View 
                 key={`${item.exercise._id}-${exerciseIndex}`}
@@ -213,28 +249,26 @@ export default function NewWorkoutScreen() {
 
                 {item.sets.map((set, setIndex) => (
                   <View key={set._id} style={styles.setRow}>
-                    <Text style={styles.setText}>Set {setIndex + 1}</Text>
+                    <Text style={styles.setText}>{setIndex + 1}</Text>
                     <TextInput
                       style={styles.setInput}
                       value={set.weight}
                       onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'weight', value)}
-                      placeholder="0"
-                      placeholderTextColor={theme.colors.textSecondary}
                       keyboardType="numeric"
+                      placeholder="0"
                     />
                     <TextInput
                       style={styles.setInput}
                       value={set.reps}
                       onChangeText={(value) => updateSetValue(exerciseIndex, setIndex, 'reps', value)}
-                      placeholder="0"
-                      placeholderTextColor={theme.colors.textSecondary}
                       keyboardType="numeric"
+                      placeholder="0"
                     />
                     <TouchableOpacity
                       style={styles.removeSetButton}
                       onPress={() => removeSet(exerciseIndex, setIndex)}
                     >
-                      <X size={16} color={theme.colors.textSecondary} />
+                      <X size={14} color={theme.colors.textSecondary} />
                     </TouchableOpacity>
                   </View>
                 ))}
@@ -246,14 +280,6 @@ export default function NewWorkoutScreen() {
                   >
                     <Plus size={14} color={theme.colors.primary} />
                     <Text style={styles.addSetText}>Add Set</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.restTimerButton}
-                    onPress={() => setShowTimer(true)}
-                  >
-                    <Clock size={14} color={theme.colors.primary} />
-                    <Text style={styles.addSetText}>Rest Timer</Text>
                   </TouchableOpacity>
                 </View>
               </Animated.View>
@@ -267,13 +293,6 @@ export default function NewWorkoutScreen() {
               <Text style={styles.addExerciseText}>Add Exercise</Text>
             </TouchableOpacity>
           </ScrollView>
-          
-          {showTimer && (
-            <RestTimer
-              onClose={() => setShowTimer(false)}
-              defaultTime={90}
-            />
-          )}
         </>
       )}
     </SafeAreaView>
@@ -401,18 +420,10 @@ const styles = StyleSheet.create({
   },
   setActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     marginTop: 16,
   },
   addSetButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  restTimerButton: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: theme.colors.background,
@@ -479,5 +490,33 @@ const styles = StyleSheet.create({
   },
   searchResults: {
     flex: 1,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+  },
+  dateText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
+  input: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    backgroundColor: theme.colors.card,
+    borderRadius: 8,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
 });

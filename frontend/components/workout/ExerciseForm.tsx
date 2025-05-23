@@ -11,11 +11,7 @@ interface ExerciseFormProps {
 }
 
 export function ExerciseForm({ exercise, exercises, onUpdate }: ExerciseFormProps) {
-  console.log('ExerciseForm rendered with exercise:', exercise);
-  console.log('Available exercises:', exercises);
-
   const handleExerciseChange = (newExercise: Exercise) => {
-    console.log('Exercise changed to:', newExercise);
     onUpdate({
       ...exercise,
       exerciseId: newExercise

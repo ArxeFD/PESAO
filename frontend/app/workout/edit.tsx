@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Platform, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Check, ChevronDown, Clock, X, Search, Plus, Calendar, ChevronLeft, Trash2 } from 'lucide-react-native';
+import { Check, ChevronDown, X, Search, Plus, Calendar, ChevronLeft, Trash2 } from 'lucide-react-native';
 import { theme } from '@/constants/theme';
 import { Workout, Exercise, WorkoutExercise } from '@/types';
 import { useWorkouts } from '@/hooks/useWorkouts';
 import { useExercises } from '@/hooks/useExercises';
 import ExerciseSearchItem from '@/components/exercises/ExerciseSearchItem';
-import RestTimer from '@/components/workout/RestTimer';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { format } from 'date-fns';
@@ -30,6 +29,7 @@ export default function EditWorkoutScreen() {
   });
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     const fetchWorkout = async () => {
@@ -47,7 +47,6 @@ export default function EditWorkoutScreen() {
               exercises: workoutData.exercises,
               notes: workoutData.notes
             });
-            console.log('Set form data with exercises:', workoutData.exercises);
           }
         } catch (error) {
           console.error('Error fetching workout:', error);
@@ -64,7 +63,6 @@ export default function EditWorkoutScreen() {
     try {
       if (!workout) return;
 
-      console.log('Saving workout with form data:', formData);
       // Convert form data to workout format
       const updatedWorkout = {
         ...workout,
@@ -85,7 +83,6 @@ export default function EditWorkoutScreen() {
         })),
         notes: formData.notes
       };
-      console.log('Updated workout data:', updatedWorkout);
 
       await updateWorkout(workout._id, updatedWorkout);
       router.back();
@@ -100,19 +97,16 @@ export default function EditWorkoutScreen() {
   };
 
   const handleRemoveExercise = (index: number) => {
-    console.log('Removing exercise at index:', index);
     setFormData(prev => {
       const updated = {
         ...prev,
         exercises: prev.exercises.filter((_, i) => i !== index)
       };
-      console.log('Updated form data after removing exercise:', updated);
       return updated;
     });
   };
 
   const handleUpdateExercise = (index: number, updatedExercise: WorkoutExercise) => {
-    console.log('Updating exercise at index:', index, 'with:', updatedExercise);
     setFormData(prev => {
       const updated = {
         ...prev,
@@ -120,13 +114,11 @@ export default function EditWorkoutScreen() {
           i === index ? updatedExercise : exercise
         )
       };
-      console.log('Updated form data after updating exercise:', updated);
       return updated;
     });
   };
 
   const handleUpdateSets = (exerciseIndex: number, sets: WorkoutExercise['sets']) => {
-    console.log('Updating sets for exercise at index:', exerciseIndex, 'with:', sets);
     setFormData(prev => {
       const updated = {
         ...prev,
@@ -134,7 +126,6 @@ export default function EditWorkoutScreen() {
           i === exerciseIndex ? { ...exercise, sets } : exercise
         )
       };
-      console.log('Updated form data after updating sets:', updated);
       return updated;
     });
   };
@@ -172,11 +163,28 @@ export default function EditWorkoutScreen() {
 
         <View style={styles.formGroup}>
           <Text style={styles.label}>Date</Text>
-          <TextInput
+          <TouchableOpacity 
             style={styles.input}
-            value={format(formData.date, 'MMM d, yyyy')}
-            editable={false}
-          />
+            onPress={() => setShowDatePicker(true)}
+          >
+            <Text style={styles.dateText}>
+              {format(formData.date, 'MMM d, yyyy')}
+            </Text>
+            <Calendar size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={formData.date}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              onChange={(event, date) => {
+                setShowDatePicker(false);
+                if (date) {
+                  setFormData(prev => ({ ...prev, date }));
+                }
+              }}
+            />
+          )}
         </View>
 
         <View style={styles.formGroup}>
@@ -263,7 +271,6 @@ export default function EditWorkoutScreen() {
               placeholderTextColor={theme.colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
-              autoFocus
             />
           </View>
           
@@ -351,6 +358,12 @@ const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
     marginBottom: 8,
   },
+  dateText: {
+    fontFamily: 'Inter-Regular',
+    fontSize: 16,
+    color: theme.colors.textPrimary,
+    flex: 1,
+  },
   input: {
     fontFamily: 'Inter-Regular',
     fontSize: 16,
@@ -360,6 +373,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: theme.colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   notesInput: {
     height: 100,

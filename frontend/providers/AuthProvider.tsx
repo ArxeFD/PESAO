@@ -90,7 +90,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (name: string, email: string, password: string, weight?: number, height?: number) => {
     try {
-      
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
@@ -113,12 +112,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const userData = {
-        id: data.id,
-        name: data.name,
-        email: data.email,
-        role: data.role,
-        weight: data.weight,
-        height: data.height,
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        role: data.user.role,
+        weight: data.user.weight,
+        height: data.user.height,
       };
 
       setUser(userData);

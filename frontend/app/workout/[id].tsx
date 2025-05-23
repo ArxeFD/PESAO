@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Alert, TouchableWithoutFeedback } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ArrowLeft, Clock, MoveVertical as MoreVertical, ChevronDown, Share2, ChevronRight, Edit2, Trash2, ChevronLeft } from 'lucide-react-native';
@@ -28,7 +28,6 @@ export default function WorkoutDetailScreen() {
         try {
           console.log('Starting to fetch workout with ID:', id);
           const workoutData = await getWorkoutById(id);
-          console.log('Workout data received in component:', workoutData);
           if (!workoutData) {
             console.error('No workout data received');
             Alert.alert('Error', 'Workout not found');
@@ -70,6 +69,7 @@ export default function WorkoutDetailScreen() {
   };
 
   const handleEdit = () => {
+    setShowOptions(false);
     router.push({
       pathname: '/workout/edit',
       params: { id: id }
@@ -109,16 +109,21 @@ export default function WorkoutDetailScreen() {
       </View>
 
       {showOptions && (
-        <View style={styles.optionsMenu}>
-          <TouchableOpacity onPress={handleEdit} style={styles.optionItem}>
-            <Edit2 size={20} color={theme.colors.textPrimary} />
-            <Text style={styles.optionText}>Edit Workout</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleDelete} style={styles.optionItem}>
-            <Trash2 size={20} color={theme.colors.danger} />
-            <Text style={[styles.optionText, { color: theme.colors.danger }]}>Delete Workout</Text>
-          </TouchableOpacity>
-        </View>
+        <>
+          <TouchableWithoutFeedback onPress={() => setShowOptions(false)}>
+            <View style={styles.overlay} />
+          </TouchableWithoutFeedback>
+          <View style={styles.optionsMenu}>
+            <TouchableOpacity onPress={handleEdit} style={styles.optionItem}>
+              <Edit2 size={20} color={theme.colors.textPrimary} />
+              <Text style={styles.optionText}>Edit Workout</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handleDelete} style={styles.optionItem}>
+              <Trash2 size={20} color={theme.colors.danger} />
+              <Text style={[styles.optionText, { color: theme.colors.danger }]}>Delete Workout</Text>
+            </TouchableOpacity>
+          </View>
+        </>
       )}
 
       <ScrollView style={styles.content}>
@@ -184,6 +189,15 @@ const styles = StyleSheet.create({
   },
   optionsButton: {
     padding: 8,
+  },
+  overlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'transparent',
+    zIndex: 999,
   },
   optionsMenu: {
     position: 'absolute',

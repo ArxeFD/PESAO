@@ -15,7 +15,6 @@ export function useWorkouts() {
 
   const fetchWorkouts = useCallback(async () => {
     try {
-      console.log('🔄 Starting fetchWorkouts');
       setIsLoading(true);
       setError(null);
       const token = await AsyncStorage.getItem('token');
@@ -37,9 +36,7 @@ export function useWorkouts() {
       }
 
       const data = await response.json();
-      console.log('📥 Fetched workouts data:', data);
       setWorkouts(data);
-      console.log('💾 Updated workouts state with:', data);
     } catch (err: any) {
       console.error('❌ Error in fetchWorkouts:', err);
       setError(err.message || 'Failed to load workouts');
@@ -50,7 +47,6 @@ export function useWorkouts() {
   }, []);
 
   useEffect(() => {
-    console.log('👤 User changed:', user);
     if (user) {
       fetchWorkouts();
     }
@@ -63,19 +59,12 @@ export function useWorkouts() {
       if (!token) {
         throw new Error('No authentication token found');
       }
-
-      console.log('Making request to:', `${API_BASE_URL}/workouts/${id}`);
-      console.log('With token:', token);
-
       const response = await fetch(`${API_BASE_URL}/workouts/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-
-      console.log('Response status:', response.status);
-      console.log('Response headers:', response.headers);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to fetch workout' }));
@@ -93,9 +82,6 @@ export function useWorkouts() {
 
   const createWorkout = async (workoutData: Omit<Workout, '_id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      console.log('🔄 Starting createWorkout');
-      console.log('📤 Create data:', workoutData);
-      
       const token = await AsyncStorage.getItem('token');
       
       if (!token) {
@@ -117,13 +103,10 @@ export function useWorkouts() {
       }
 
       const newWorkout = await response.json();
-      console.log('📥 Received new workout:', newWorkout);
       
       // Update local state immediately
       setWorkouts(prevWorkouts => {
-        console.log('📦 Previous workouts state:', prevWorkouts);
         const newWorkouts = [newWorkout, ...prevWorkouts];
-        console.log('📦 New workouts state:', newWorkouts);
         return newWorkouts;
       });
       
@@ -136,8 +119,6 @@ export function useWorkouts() {
 
   const updateWorkout = async (id: string, workoutData: Partial<Workout>) => {
     try {
-      console.log('🔄 Starting updateWorkout for ID:', id);
-      console.log('📤 Update data:', workoutData);
       
       const token = await AsyncStorage.getItem('token');
       
@@ -161,21 +142,15 @@ export function useWorkouts() {
       }
 
       const updatedWorkout = await response.json();
-      console.log('📥 Received updated workout from server:', updatedWorkout);
       
       // Update local state immediately with a new array reference
       setWorkouts(prevWorkouts => {
-        console.log('📦 Previous workouts state:', prevWorkouts);
         const newWorkouts = prevWorkouts.map(workout => {
           if (workout._id === id) {
-            console.log('🔄 Updating workout:', workout._id);
-            console.log('📦 Old workout data:', workout);
-            console.log('📦 New workout data:', updatedWorkout);
             return updatedWorkout; // Use the complete updated workout from server
           }
           return workout;
         });
-        console.log('📦 New workouts state:', newWorkouts);
         return newWorkouts;
       });
 
@@ -188,7 +163,6 @@ export function useWorkouts() {
 
   const deleteWorkout = async (id: string) => {
     try {
-      console.log('🔄 Starting deleteWorkout for ID:', id);
       
       const token = await AsyncStorage.getItem('token');
       
@@ -209,9 +183,7 @@ export function useWorkouts() {
 
       // Update local state immediately
       setWorkouts(prevWorkouts => {
-        console.log('📦 Previous workouts state:', prevWorkouts);
         const newWorkouts = prevWorkouts.filter(workout => workout._id !== id);
-        console.log('📦 New workouts state:', newWorkouts);
         return newWorkouts;
       });
     } catch (err) {

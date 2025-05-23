@@ -19,14 +19,12 @@ export default function WorkoutsScreen() {
 
   // Update local state whenever workouts change
   useEffect(() => {
-    console.log('🔄 Workouts changed, updating local state:', workouts);
     setLocalWorkouts(workouts);
   }, [workouts]);
 
   // Refetch workouts when screen comes into focus
   useFocusEffect(
     React.useCallback(() => {
-      console.log('🔄 Screen focused, refetching workouts');
       refetch();
     }, [refetch])
   );
@@ -51,7 +49,6 @@ export default function WorkoutsScreen() {
     workout => isSameDay(new Date(workout.date), selectedDate)
   );
 
-  console.log('📅 Filtered workouts for selected date:', selectedDate, filteredWorkouts);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

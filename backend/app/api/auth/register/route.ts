@@ -3,6 +3,9 @@ import connectDB from '@/lib/db';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import User from '@/models/User';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -51,6 +54,13 @@ export async function POST(request: Request) {
       height: Number(height)
     });
 
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id },
+      JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
     // Remove password from response
     const userResponse = {
       id: user._id,
@@ -64,7 +74,7 @@ export async function POST(request: Request) {
     };
 
     console.log('User registered successfully:', userResponse.email);
-    return NextResponse.json(userResponse, { status: 201 });
+    return NextResponse.json({ user: userResponse, token }, { status: 201 });
   } catch (error: any) {
     console.error('Registration error:', error);
     return NextResponse.json(

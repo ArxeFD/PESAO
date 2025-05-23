@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView, Modal, TextInput, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Image, TouchableOpacity, Switch, ScrollView, Modal, TextInput, Keyboard, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { theme } from '@/constants/theme';
 import { 
@@ -10,6 +10,11 @@ import { useRouter } from 'expo-router';
 import { Platform } from 'react-native';
 import PlateCalculator from '@/components/profile/PlateCalculator';
 import { useAuth } from '@/providers/AuthProvider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE_URL = __DEV__ 
+  ? 'http://192.168.1.91:3000/api'  // Development
+  : 'https://api.pesao.com/api';   // Production
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -51,13 +56,56 @@ export default function ProfileScreen() {
     setShowEditModal(true);
   };
 
-  const handleSaveProfile = () => {
-    setProfileData({
-      name: editData.name,
-      weight: editData.weight,
-      height: editData.height
-    });
-    setShowEditModal(false);
+  const handleSaveProfile = async () => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await fetch(`${API_BASE_URL}/users/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: editData.name,
+          weight: parseFloat(editData.weight),
+          height: parseFloat(editData.height)
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
+      const updatedUser = await response.json();
+      
+      // Update local state
+      setProfileData({
+        name: updatedUser.name,
+        weight: updatedUser.weight.toString(),
+        height: updatedUser.height.toString()
+      });
+
+      // Update user in AuthContext
+      if (user) {
+        const updatedUserData = {
+          ...user,
+          name: updatedUser.name,
+          weight: updatedUser.weight,
+          height: updatedUser.height
+        };
+        await AsyncStorage.setItem('user', JSON.stringify(updatedUserData));
+      }
+
+      setShowEditModal(false);
+      Alert.alert('Success', 'Profile updated successfully');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+    }
   };
 
   return (

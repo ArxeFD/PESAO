@@ -101,8 +101,6 @@ export default function ProgressScreen() {
             icon={<BarChart3 size={48} color={theme.colors.border} />}
             title="No progress data"
             description="Complete workouts to track your progress"
-            actionLabel="Start a Workout"
-            onAction={() => {}}
           />
         )}
 

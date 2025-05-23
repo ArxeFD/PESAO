@@ -23,7 +23,6 @@ export function useExercises() {
         throw new Error('No authentication token found');
       }
 
-      console.log('Fetching exercises...');
       const response = await fetch(`${API_BASE_URL}/exercises`, {
         headers: {
           'Authorization': `Bearer ${token}`,

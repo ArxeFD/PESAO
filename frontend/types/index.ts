@@ -121,7 +121,6 @@ export interface UserProfile {
   height?: number;
   units: 'kg' | 'lb';
   distanceUnits: 'km' | 'mi';
-  restTimer: number; // in seconds
   createdAt?: string;
   updatedAt?: string;
 }
