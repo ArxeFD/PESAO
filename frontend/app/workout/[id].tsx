@@ -26,7 +26,6 @@ export default function WorkoutDetailScreen() {
     const fetchWorkout = async () => {
       if (typeof id === 'string') {
         try {
-          console.log('Starting to fetch workout with ID:', id);
           const workoutData = await getWorkoutById(id);
           if (!workoutData) {
             console.error('No workout data received');
