@@ -11,48 +11,80 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().min(2),
-  weight: z.number().min(0),
-  height: z.number().min(0)
+  weight: z.number().min(0).optional(),
+  height: z.number().min(0).optional()
 });
+
+// CORS headers - including Pragma and Expires
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, Expires',
+};
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
 
 export async function POST(request: Request) {
   try {
+    console.log('🎯 === REGISTER REQUEST RECEIVED ===');
+    console.log('📍 Timestamp:', new Date().toISOString());
+
     await connectDB();
-    
+    console.log('✅ Database connected successfully');
+
     const body = await request.json();
-    console.log('Received registration request for email:', body.email);
+    console.log('📦 Request body received:', {
+      name: body.name,
+      email: body.email,
+      hasPassword: !!body.password,
+      weight: body.weight,
+      height: body.height
+    });
 
     const validation = registerSchema.safeParse(body);
-    
+
     if (!validation.success) {
-      console.log('Validation error:', validation.error.issues);
+      console.log('❌ Validation failed:', validation.error.issues);
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
+    console.log('✅ Validation passed');
 
-    const { email, password, name, weight, height } = validation.data;
+    const { name, email, password, weight, height } = validation.data;
 
     // Check if user already exists
+    console.log('🔍 Checking if user already exists...');
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      console.log('⚠️ User already exists with email:', email);
       return NextResponse.json(
-        { error: 'Email already registered' },
-        { status: 400 }
+        { error: 'User already exists' },
+        { status: 400, headers: corsHeaders }
       );
     }
+    console.log('✅ User does not exist, proceeding with registration');
 
-    // Create new user with plain password
-    // The User model's pre-save hook will handle the hashing
-    const user = await User.create({
-      email,
-      password, // This will be hashed by the User model
+    // Create new user
+    console.log('📝 Creating new user...');
+    const user = new User({
       name,
+      email,
+      password, // Will be hashed by the pre-save hook
       role: 'user',
-      weight: Number(weight),
-      height: Number(height)
+      weight,
+      height,
     });
+
+    await user.save();
+    console.log('✅ User saved successfully, ID:', user._id);
 
     // Generate JWT token
     const token = jwt.sign(
@@ -60,26 +92,30 @@ export async function POST(request: Request) {
       JWT_SECRET,
       { expiresIn: '7d' }
     );
+    console.log('✅ JWT token generated');
 
-    // Remove password from response
-    const userResponse = {
-      id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      weight: user.weight,
-      height: user.height,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+    const response = {
+      user: {
+        id: user._id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        weight: user.weight,
+        height: user.height,
+      },
+      token,
     };
 
-    console.log('User registered successfully:', userResponse.email);
-    return NextResponse.json({ user: userResponse, token }, { status: 201 });
+    console.log('🎉 Registration successful for user:', user.email);
+    return NextResponse.json(response, { headers: corsHeaders });
   } catch (error: any) {
-    console.error('Registration error:', error);
+    console.error('💥 REGISTRATION ERROR:');
+    console.error('   - Error name:', error.name);
+    console.error('   - Error message:', error.message);
+    console.error('   - Stack trace:', error.stack);
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

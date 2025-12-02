@@ -1,0 +1,66 @@
+═══════════════════════════════════════════════════════════════
+                    PESAO - DESCRIPCIÓN DE LA APP
+═══════════════════════════════════════════════════════════════
+
+📱 NOMBRE: PESAO (Plataforma de Entrenamiento y Seguimiento con Análisis Optimizado)
+
+🎯 ¿QUÉ ES?
+PESAO es una aplicación móvil integral de fitness que revoluciona la forma en que 
+las personas entrenan, rastrean su progreso y alcanzan sus objetivos físicos.
+
+🔥 PROBLEMA QUE RESUELVE:
+- La mayoría de las apps de fitness son complicadas y abrumadoras
+- No hay seguimiento efectivo del progreso real
+- Las rutinas genéricas no se adaptan a cada persona
+- Falta de motivación y rendición de cuentas
+- Precio elevado de entrenadores personales ($50-150/sesión)
+
+💡 SOLUCIÓN:
+Una app simple, intuitiva y poderosa que permite:
+✓ Registrar entrenamientos con sets, repeticiones y peso
+✓ Biblioteca completa de ejercicios organizados por músculo
+✓ Creación de rutinas personalizadas
+✓ Tracking automático de progreso (volumen, PRs, tendencias)
+✓ Dashboard con métricas visuales
+✓ Sistema de roles (usuarios y administradores)
+
+👥 PÚBLICO OBJETIVO:
+- Personas que van al gimnasio (18-45 años)
+- Atletas amateur que buscan mejorar rendimiento
+- Personas que quieren iniciar su viaje fitness
+- Entrenadores personales que necesitan gestionar clientes
+
+🛠️ TECNOLOGÍA:
+Frontend: React Native (iOS y Android)
+Backend: Next.js con MongoDB
+Autenticación: JWT seguro
+Arquitectura: API RESTful escalable
+
+📊 CARACTERÍSTICAS PRINCIPALES:
+1. Registro de workouts con cronómetro
+2. Biblioteca de +100 ejercicios (chest, back, legs, arms, shoulders, core)
+3. Historial completo de entrenamientos
+4. Análisis de volumen total y progreso
+5. Rutinas predefinidas y personalizables
+6. Gestión de perfil (peso, altura, objetivos)
+7. Interfaz limpia y moderna
+
+🎨 DIFERENCIADORES:
+→ Simplicidad ante todo: Sin complicaciones innecesarias
+→ Offline-first: Funciona sin conexión
+→ Datos visuales: Gráficos claros de progreso
+→ Comunidad: (Próxima versión) Sistema social
+→ IA: (Próxima versión) Recomendaciones inteligentes
+
+💰 MODELO DE INGRESOS POTENCIAL:
+Ver archivo PITCH_SHARK_TANK.txt
+
+🚀 VISIÓN A FUTURO:
+Convertirnos en la app #1 de fitness en Latinoamérica, expandiendo a:
+- Planes de nutrición personalizados
+- Comunidad y retos sociales
+- Integración con wearables (Apple Watch, Fitbit)
+- Marketplace de entrenadores certificados
+- IA para optimización de rutinas
+
+═══════════════════════════════════════════════════════════════

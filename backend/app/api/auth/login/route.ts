@@ -11,21 +11,36 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+// CORS headers - including Pragma and Expires
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, Expires',
+};
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 export async function POST(request: Request) {
   try {
     console.log('Starting login process...');
     await connectDB();
-    
+
     const body = await request.json();
     console.log('Received login request for email:', body.email);
-    
+
     const validation = loginSchema.safeParse(body);
-    
+
     if (!validation.success) {
       console.log('Validation failed:', validation.error.issues);
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -34,23 +49,23 @@ export async function POST(request: Request) {
     // Find user
     console.log('Searching for user with email:', email);
     const user = await User.findOne({ email });
-    
+
     if (!user) {
       console.log('User not found');
       return NextResponse.json(
         { error: 'Invalid credentials' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
     console.log('User found, verifying password...');
 
     const isValidPassword = await user.comparePassword(password);
-    
+
     if (!isValidPassword) {
       console.log('Invalid password');
       return NextResponse.json(
         { error: 'Invalid credentials' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
     console.log('Password verified successfully');
@@ -76,7 +91,7 @@ export async function POST(request: Request) {
     };
 
     console.log('Login successful for user:', user.email);
-    return NextResponse.json(response);
+    return NextResponse.json(response, { headers: corsHeaders });
   } catch (error: any) {
     console.error('Login error details:', {
       message: error.message,
@@ -85,7 +100,7 @@ export async function POST(request: Request) {
     });
     return NextResponse.json(
       { error: 'Internal server error', details: error.message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

@@ -3,8 +3,8 @@ import { Exercise, Muscle, Equipment } from '@/types';
 import { useAuth } from '@/providers/AuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.91:3000/api'  // Development
+const API_BASE_URL = __DEV__
+  ? 'http://192.168.1.77:3000/api'  // Development
   : 'https://api.pesao.com/api';   // Production
 
 export function useExercises() {
@@ -18,7 +18,7 @@ export function useExercises() {
       setIsLoading(true);
       setError(null);
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -29,7 +29,7 @@ export function useExercises() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to fetch exercises' }));
         throw new Error(errorData.error || 'Failed to fetch exercises');
@@ -62,8 +62,8 @@ export function useExercises() {
   };
 
   const getExercisesByMuscle = (muscle: Muscle) => {
-    return exercises.filter(exercise => 
-      exercise.primaryMuscles.includes(muscle) || 
+    return exercises.filter(exercise =>
+      exercise.primaryMuscles.includes(muscle) ||
       exercise.secondaryMuscles.includes(muscle)
     );
   };

@@ -23,19 +23,29 @@ export default function ProgressScreen() {
 
   // Get selected exercise data
   const selectedExerciseData = exercises.find(ex => ex._id === selectedExercise);
-  
+
   // Get workout history for the selected exercise
   const exerciseHistory = workouts
-    .filter(workout => 
-      workout.exercises.some(ex => ex.exerciseId === selectedExercise)
+    .filter(workout =>
+      workout.exercises.some(ex => {
+        const exerciseId = typeof ex.exerciseId === 'string'
+          ? ex.exerciseId
+          : ex.exerciseId._id;
+        return exerciseId === selectedExercise;
+      })
     )
     .map(workout => {
-      const exerciseData = workout.exercises.find(ex => ex.exerciseId === selectedExercise);
+      const exerciseData = workout.exercises.find(ex => {
+        const exerciseId = typeof ex.exerciseId === 'string'
+          ? ex.exerciseId
+          : ex.exerciseId._id;
+        return exerciseId === selectedExercise;
+      });
       if (!exerciseData) return null;
-      
+
       const maxWeight = Math.max(...exerciseData.sets.map(set => set.weight));
       const totalVolume = exerciseData.sets.reduce((total, set) => total + (set.weight * set.reps), 0);
-      
+
       return {
         date: new Date(workout.date),
         maxWeight,
@@ -50,7 +60,7 @@ export default function ProgressScreen() {
     labels: exerciseHistory.map(h => format(h!.date, 'MMM d')),
     datasets: [
       {
-        data: exerciseHistory.map(h => 
+        data: exerciseHistory.map(h =>
           chartType === 'weight' ? h!.maxWeight : h!.totalVolume
         ),
         color: (opacity = 1) => theme.colors.primary,
@@ -74,7 +84,7 @@ export default function ProgressScreen() {
       <ScrollView style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.title}>Progress</Text>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.chartTypeButton}
             onPress={() => setChartType(prev => prev === 'weight' ? 'volume' : 'weight')}
           >
@@ -108,7 +118,7 @@ export default function ProgressScreen() {
           <Text style={styles.sectionTitle}>
             Track Progress For
           </Text>
-          
+
           {exercises.map(exercise => (
             <ProgressExerciseItem
               key={exercise._id}

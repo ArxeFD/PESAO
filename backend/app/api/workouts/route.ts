@@ -26,6 +26,21 @@ const workoutSchema = z.object({
   exercises: z.array(workoutExerciseSchema)
 });
 
+// CORS headers
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin, Cache-Control, Pragma, Expires',
+};
+
+// Handle CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders,
+  });
+}
+
 // Middleware para verificar el token
 const verifyToken = async (request: Request) => {
   const authHeader = request.headers.get('authorization');
@@ -49,7 +64,7 @@ export async function GET(request: Request) {
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
@@ -58,12 +73,12 @@ export async function GET(request: Request) {
       .populate('exercises.exerciseId')
       .sort({ date: -1 });
 
-    return NextResponse.json(workouts);
+    return NextResponse.json(workouts, { headers: corsHeaders });
   } catch (error: any) {
     console.error('Error fetching workouts:', error);
     return NextResponse.json(
       { error: 'Error fetching workouts' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -75,18 +90,18 @@ export async function POST(request: Request) {
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
+        { status: 401, headers: corsHeaders }
       );
     }
 
     await connectDB();
     const body = await request.json();
-    
+
     const validation = workoutSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
         { error: 'Invalid input data', details: validation.error.issues },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
@@ -98,12 +113,12 @@ export async function POST(request: Request) {
     const populatedWorkout = await Workout.findById(workout._id)
       .populate('exercises.exerciseId');
 
-    return NextResponse.json(populatedWorkout, { status: 201 });
+    return NextResponse.json(populatedWorkout, { status: 201, headers: corsHeaders });
   } catch (error: any) {
     console.error('Error creating workout:', error);
     return NextResponse.json(
       { error: 'Error creating workout' },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
-} 
+}

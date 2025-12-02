@@ -3,8 +3,8 @@ import { Workout } from '@/types';
 import { useAuth } from '@/providers/AuthProvider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.91:3000/api'  // Development
+const API_BASE_URL = __DEV__
+  ? 'http://192.168.1.77:3000/api'  // Development
   : 'https://api.pesao.com/api';   // Production
 
 export function useWorkouts() {
@@ -18,7 +18,7 @@ export function useWorkouts() {
       setIsLoading(true);
       setError(null);
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -29,7 +29,7 @@ export function useWorkouts() {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to fetch workouts' }));
         throw new Error(errorData.error || 'Failed to fetch workouts');
@@ -55,7 +55,7 @@ export function useWorkouts() {
   const getWorkoutById = async (id: string) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -83,7 +83,7 @@ export function useWorkouts() {
   const createWorkout = async (workoutData: Omit<Workout, '_id' | 'createdAt' | 'updatedAt'>) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -103,13 +103,13 @@ export function useWorkouts() {
       }
 
       const newWorkout = await response.json();
-      
+
       // Update local state immediately
       setWorkouts(prevWorkouts => {
         const newWorkouts = [newWorkout, ...prevWorkouts];
         return newWorkouts;
       });
-      
+
       return newWorkout;
     } catch (err: any) {
       console.error('❌ Error in createWorkout:', err);
@@ -119,9 +119,9 @@ export function useWorkouts() {
 
   const updateWorkout = async (id: string, workoutData: Partial<Workout>) => {
     try {
-      
+
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -142,7 +142,7 @@ export function useWorkouts() {
       }
 
       const updatedWorkout = await response.json();
-      
+
       // Update local state immediately with a new array reference
       setWorkouts(prevWorkouts => {
         const newWorkouts = prevWorkouts.map(workout => {
@@ -163,9 +163,9 @@ export function useWorkouts() {
 
   const deleteWorkout = async (id: string) => {
     try {
-      
+
       const token = await AsyncStorage.getItem('token');
-      
+
       if (!token) {
         throw new Error('No authentication token found');
       }
@@ -194,7 +194,7 @@ export function useWorkouts() {
 
   const sortWorkouts = (option: 'most_recent' | 'oldest' | 'most_volume' | 'most_sets') => {
     const sorted = [...workouts];
-    
+
     switch (option) {
       case 'most_recent':
         return sorted.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -202,9 +202,9 @@ export function useWorkouts() {
         return sorted.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       case 'most_volume':
         return sorted.sort((a, b) => {
-          const volumeA = a.exercises.reduce((total, ex) => 
+          const volumeA = a.exercises.reduce((total, ex) =>
             total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0), 0);
-          const volumeB = b.exercises.reduce((total, ex) => 
+          const volumeB = b.exercises.reduce((total, ex) =>
             total + ex.sets.reduce((setTotal, set) => setTotal + (set.weight * set.reps), 0), 0);
           return volumeB - volumeA;
         });

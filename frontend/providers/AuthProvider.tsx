@@ -21,9 +21,11 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Base URL for API calls
-const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.91:3000/api'  // Development
+const API_BASE_URL = __DEV__
+  ? 'http://192.168.1.77:3000/api'  // Development
   : 'https://api.pesao.com/api';   // Production
+
+console.log('🔧 AuthProvider loaded, API_BASE_URL:', API_BASE_URL);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -35,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const storedUser = await AsyncStorage.getItem('user');
         const token = await AsyncStorage.getItem('token');
-        
+
         if (storedUser && token) {
           setUser(JSON.parse(storedUser));
         }
@@ -51,16 +53,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      
+      console.log('🚀 === AGGRESSIVE DEBUG START ===');
+      console.log('📱 Device Network Info:');
+      console.log('   - API_BASE_URL:', API_BASE_URL);
+      console.log('   - Target Endpoint:', `${API_BASE_URL}/auth/login`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      console.log('⚡ Initiating fetch request...');
+      const startTime = Date.now();
+
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
         body: JSON.stringify({ email, password }),
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+      const endTime = Date.now();
+      console.log(`✅ Fetch completed in ${endTime - startTime}ms`);
+      console.log('📥 Response Status:', response.status);
+      console.log('📥 Response Headers:', JSON.stringify(response.headers, null, 2));
+
+      const text = await response.text();
+      console.log('📄 Raw Response Body:', text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Failed to parse JSON response');
+        throw new Error('Invalid JSON response from server');
+      }
 
       if (!response.ok) {
         throw new Error(data.error || 'Login failed');
@@ -78,22 +110,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       await AsyncStorage.setItem('token', data.token);
+      console.log('🎉 Login successful!');
     } catch (error: any) {
-      console.error('Sign in error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
+      console.error('💥 FATAL ERROR IN SIGNIN:');
+      if (error.name === 'AbortError') {
+        console.error('⏰ Request timed out after 10s');
+      } else {
+        console.error('🔴 Error Name:', error.name);
+        console.error('🔴 Error Message:', error.message);
+        console.error('🔴 Stack:', error.stack);
+      }
       throw error;
     }
   };
 
   const signUp = async (name: string, email: string, password: string, weight?: number, height?: number) => {
     try {
+      console.log('📝 === SIGN UP DEBUG START ===');
+      console.log('📍 API_BASE_URL:', API_BASE_URL);
+      console.log('🌐 Full URL:', `${API_BASE_URL}/auth/register`);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      console.log('⚡ Initiating fetch request...');
+      const startTime = Date.now();
+
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
+          'Accept': 'application/json',
           'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
         },
         body: JSON.stringify({
           name,
@@ -102,9 +152,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           weight,
           height
         }),
+        signal: controller.signal
       });
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+      const endTime = Date.now();
+      console.log(`✅ Fetch completed in ${endTime - startTime}ms`);
+      console.log('📥 Response Status:', response.status);
+      console.log('📥 Response Headers:', JSON.stringify(response.headers, null, 2));
+
+      const text = await response.text();
+      console.log('📄 Raw Response Body:', text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error('❌ Failed to parse JSON response');
+        throw new Error('Invalid JSON response from server');
+      }
+
       console.log('Register response:', data);
 
       if (!response.ok) {
@@ -123,12 +190,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(userData);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
       await AsyncStorage.setItem('token', data.token);
+      console.log('🎉 === SIGN UP SUCCESS ===');
     } catch (error: any) {
-      console.error('Sign up error details:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response
-      });
+      console.error('❌ === SIGN UP ERROR ===');
+      if (error.name === 'AbortError') {
+        console.error('⏰ Request timed out after 10s');
+      } else {
+        console.error('🔴 Error type:', error.name);
+        console.error('💬 Error message:', error.message);
+        console.error('📄 Full error:', error);
+      }
       throw error;
     }
   };

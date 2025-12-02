@@ -1,0 +1,187 @@
+═══════════════════════════════════════════════════════════════
+          🦈 PITCH SHARK TANK - PESAO FITNESS APP 🦈
+═══════════════════════════════════════════════════════════════
+
+📢 APERTURA (30 segundos)
+═══════════════════════════════════════════════════════════════
+"Señores tiburones, ¿cuántos de ustedes van al gimnasio? 
+[Esperar respuesta]
+
+¿Y cuántos llevan un registro REAL de su progreso? 
+[Probablemente pocos]
+
+Exacto. El 87% de las personas que hacen ejercicio NO rastrean 
+su progreso efectivamente, y por eso el 73% abandona en los 
+primeros 3 meses.
+
+Hoy vengo a presentarles PESAO: la app que convierte tu 
+smartphone en tu entrenador personal por solo $4.99/mes."
+
+
+🎯 EL PROBLEMA (1 minuto)
+═══════════════════════════════════════════════════════════════
+1. MERCADO MASIVO:
+   → 184 millones de membresías de gimnasio en el mundo
+   → Mercado de fitness apps: $14.7 mil millones (2023)
+   → Crecimiento proyectado: 17.6% anual hasta 2030
+
+2. DOLOR DEL CLIENTE:
+   ❌ Apps existentes son complicadas (MyFitnessPal, Strong)
+   ❌ Entrenadores personales cuestan $50-150 por sesión
+   ❌ No hay forma simple de ver progreso real
+   ❌ Falta de motivación y seguimiento
+
+3. DATO CLAVE:
+   → El cliente promedio paga $58/mes en gimnasio
+   → PERO solo el 18% usa alguna app de tracking
+   → OPORTUNIDAD GIGANTE
+
+
+💡 LA SOLUCIÓN: PESAO (1 minuto)
+═══════════════════════════════════════════════════════════════
+PESAO es la app MÁS SIMPLE para rastrear entrenamientos y ver 
+resultados REALES.
+
+FUNCIONES PRINCIPALES:
+✓ Biblioteca de +100 ejercicios profesionales
+✓ Registro rápido de sets/reps/peso (menos de 5 segundos)
+✓ Análisis de progreso con gráficos
+✓ Rutinas personalizadas
+✓ Historial completo de entrenamientos
+✓ Dashboard con métricas clave
+
+¿POR QUÉ SOMOS DIFERENTES?
+→ SIMPLICIDAD: Interfaz ultra-intuitiva (3 clics para registrar)
+→ OFFLINE: Funciona sin internet
+→ PRECIO: 10x más barato que un entrenador
+→ DATOS: Visualización clara del progreso
+
+
+💰 MODELO DE NEGOCIO (1.5 minutos)
+═══════════════════════════════════════════════════════════════
+
+INGRESOS PRINCIPALES:
+
+1. FREEMIUM MODEL:
+   → Versión gratuita: Básica (3 workouts/mes)
+   → Premium: $4.99/mes (ilimitado + análisis avanzado)
+   → Anual: $49.99/año (ahorro 17%)
+   
+2. IN-APP PURCHASES:
+   → Rutinas premium de expertos: $9.99 c/u
+   → Planes de nutrición: $14.99/mes
+   → Coaching 1-on-1 virtual: $29.99/mes
+
+3. B2B (GIMNASIOS):
+   → Licencia para gimnasios: $299/mes (hasta 500 usuarios)
+   → White-label para cadenas: $2,999/mes
+
+
+📊 PROYECCIONES FINANCIERAS (AÑO 1-3)
+═══════════════════════════════════════════════════════════════
+
+AÑO 1: FASE DE LANZAMIENTO
+• Usuarios objetivo: 10,000
+• Tasa de conversión a premium: 15% = 1,500 usuarios premium
+• Ingresos mensuales: 1,500 × $4.99 = $7,485/mes
+• Ingresos anuales: ~$90,000
+• Costos (servidor, marketing): $30,000
+• UTILIDAD NETA: $60,000
+
+AÑO 2: ESCALAMIENTO
+• Usuarios: 50,000
+• Premium (20%): 10,000 usuarios
+• Ingresos recurrentes: $49,900/mes = $598,800/año
+• In-app purchases: +$50,000/año
+• B2B (5 gimnasios): $15,000/año
+• Total ingresos: ~$664,000
+• Costos: $200,000
+• UTILIDAD NETA: $464,000
+
+AÑO 3: EXPANSIÓN LATAM
+• Usuarios: 200,000
+• Premium (25%): 50,000 usuarios
+• Ingresos recurrentes: $249,500/mes = $2,994,000/año
+• In-app purchases: +$300,000/año
+• B2B (30 gimnasios): $107,640/año
+• Total ingresos: ~$3,401,640
+• Costos: $1,000,000
+• UTILIDAD NETA: $2,401,640
+
+
+💵 LA ASK (30 segundos)
+═══════════════════════════════════════════════════════════════
+"Estoy buscando una inversión de $150,000 a cambio del 15% 
+de la empresa.
+
+Estos fondos se destinarán a:
+→ $60,000 - Marketing digital agresivo (Meta Ads, TikTok, Instagram)
+→ $40,000 - Contratación de 2 desarrolladores full-time
+→ $30,000 - Partnerships con gimnasios e influencers
+→ $20,000 - Infraestructura (servidores, escalabilidad)
+
+Con esto, alcanzaremos 50,000 usuarios en 12 meses."
+
+
+🎯 TRRACCIÓN Y VALIDACIÓN (30 segundos)
+═══════════════════════════════════════════════════════════════
+✓ MVP funcional 100% operativo (demostración en vivo)
+✓ Beta testing con 50 usuarios: 4.8/5 estrellas
+✓ Tasa de retención semanal: 68% (industria: 40%)
+✓ Tiempo promedio en app: 12 min/sesión
+✓ Cartas de intención de 3 gimnasios locales
+
+
+🚀 VISIÓN A 5 AÑOS (30 segundos)
+═══════════════════════════════════════════════════════════════
+"En 5 años, PESAO será la app #1 de fitness en Latinoamérica 
+con 2 millones de usuarios activos.
+
+Expandiremos a:
+1. IA para recomendaciones personalizadas
+2. Integración con Apple Watch y wearables
+3. Marketplace de entrenadores certificados
+4. Planes de nutrición con IA
+5. Comunidad social y retos
+
+Nuestro objetivo de salida: Adquisición por Nike, Under Armour
+o Peloton (valuación objetivo: $50-100 millones en 5 años)."
+
+
+🔥 CIERRE FUERTE (20 segundos)
+═══════════════════════════════════════════════════════════════
+"Señores tiburones, el mercado de fitness digital está en 
+auge y PESAO está posicionada para capturar una porción 
+significativa.
+
+Con su inversión, no solo ganarán dinero, también ayudarán 
+a millones de personas a alcanzar sus objetivos de salud.
+
+¿Quién está listo para hacer PESAO historia conmigo?"
+
+
+═══════════════════════════════════════════════════════════════
+                    PREGUNTAS FRECUENTES
+═══════════════════════════════════════════════════════════════
+
+Q: "¿Cómo competirás con MyFitnessPal y Strong?"
+A: "Ellos son complejos y caros. PESAO es simplicidad y precio
+   accesible. Nos enfocamos en Latinoamérica primero, mercado
+   desatendido por las grandes apps."
+
+Q: "¿Cuál es tu costo de adquisición de cliente (CAC)?"
+A: "Proyectamos $5-8 por usuario. Con LTV de $180 (3 años),
+   tenemos un ratio LTV:CAC de 22:1, excelente para SaaS."
+
+Q: "¿Qué pasa si los gimnasios hacen su propia app?"
+A: "Desarrollar una app cuesta $50K-200K. Es más barato
+   licenciar PESAO. Además, tenemos efecto de red."
+
+Q: "¿Por qué tú? ¿Qué te hace especial?"
+A: "Soy desarrollador full-stack con experiencia en fitness
+   personal. Viví el problema y construí la solución. Mi
+   equipo y yo ya validamos el producto."
+
+═══════════════════════════════════════════════════════════════
+                         ¡ÉXITO! 🦈
+═══════════════════════════════════════════════════════════════

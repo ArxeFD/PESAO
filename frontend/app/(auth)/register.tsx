@@ -17,6 +17,7 @@ export default function RegisterScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRegister = async () => {
+    console.log('👆 Register button pressed');
     if (!name || !email || !password) {
       setError('Name, email and password are required');
       return;
@@ -36,9 +37,9 @@ export default function RegisterScreen() {
       setIsLoading(true);
       setError('');
       await signUp(
-        name, 
-        email, 
-        password, 
+        name,
+        email,
+        password,
         weight ? parseFloat(weight) : undefined,
         height ? parseFloat(height) : undefined
       );
@@ -51,15 +52,21 @@ export default function RegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
+    <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
-      <ScrollView 
+      <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        <Image
+          source={{ uri: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg' }}
+          style={styles.backgroundImage}
+          pointerEvents="none"
+        />
+
         <View style={styles.header}>
           <Text style={styles.logo}>PESAO</Text>
           <Text style={styles.subtitle}>Create your account</Text>
@@ -135,8 +142,8 @@ export default function RegisterScreen() {
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          <TouchableOpacity 
-            style={[styles.button, isLoading && styles.buttonDisabled]} 
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
             onPress={handleRegister}
             disabled={isLoading}
             activeOpacity={0.7}
@@ -148,7 +155,7 @@ export default function RegisterScreen() {
           </TouchableOpacity>
 
           <Link href="/login" asChild>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.loginButton}
               activeOpacity={0.7}
             >
@@ -158,11 +165,6 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </Link>
         </View>
-
-        <Image
-          source={{ uri: 'https://images.pexels.com/photos/1552242/pexels-photo-1552242.jpeg' }}
-          style={styles.backgroundImage}
-        />
       </ScrollView>
     </KeyboardAvoidingView>
   );
